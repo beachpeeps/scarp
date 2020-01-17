@@ -1,11 +1,17 @@
 function [tUTC,tLST] = GPStoUTC(tSecFromSunday,filename,leapseconds)
 
 % get the sunday start time for the filename
+% returns also the time in local time for San Diego
+% Needs some changes to account for local time in date of filename
 
 % figure out filename date format
 dstart = regexp(filename,'[0-9]{6}');
 
-if dstart == 1
+if isempty(dstart)
+    disp('No time in the filename, please enter what day the data was collected in datetime format')
+    prompt = 'Date in string format (datetime(yyyy,mm,dd))?)';
+    filedate = input(prompt);
+elseif dstart == 1
     filedate = datetime(filename(1:8),'InputFormat','yyyyMMdd');
 elseif dstart ~=1
     dd = [dstart; dstart+5]';
@@ -16,7 +22,7 @@ end
 sunstart = dateshift(filedate,'dayofweek','sunday','previous');
 
 % account for leapseconds
-if nargin<3 && year(sunstart) == 2019
+if nargin<3 && year(sunstart) >=2020
     leapseconds = 18;
 elseif nargin<3 && year(sunstart) ~=2019
     disp('Please enter in leapseconds for your time period')

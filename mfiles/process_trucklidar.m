@@ -4,17 +4,17 @@
 
 
 
-clear
-filename = '~/Desktop/Copy of DeploymentNotes2019-2020.xls';
-P = readtable(filename,'Range','A18:O27','ReadVariableNames',false,'ReadRowNames',true);
-VarNames = readtable(filename,'Range','A1:O2','ReadRowNames',true);
-P.Properties.VariableNames = VarNames.Properties.VariableNames;
+% clear
+% filename = '~/Desktop/Copy of DeploymentNotes2019-2020.xls';
+% P = readtable(filename,'Range','A18:O27','ReadVariableNames',false,'ReadRowNames',true);
+% VarNames = readtable(filename,'Range','A1:O2','ReadRowNames',true);
+% P.Properties.VariableNames = VarNames.Properties.VariableNames;
 
 %%
-filedir = '~/Desktop/';
+filedir = 'Z:\LiDAR\Waves\IB_Intensive_Jan2020\ParkingLotTest\';
 filename = dir([filedir '*.las']);
 
-nfile = 28;
+nfile = 1;
 c = lasdata([filedir filename(nfile).name]);
 tGPS = get_gps_time(c);
 [tUTC,tLST] = GPStoUTC(tGPS,filename(nfile).name);
