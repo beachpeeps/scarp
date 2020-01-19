@@ -1,5 +1,5 @@
 .DS_Store
-las/*
+data/las/*
 viz/*
 mfiles/USACE/*
 *.asv
