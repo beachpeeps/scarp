@@ -1,7 +1,8 @@
 %plot the truck and drone together
-drone = load('../mat/lidar/drone/20191209_00582_TorreyRunup_H1.mat')
-truck = load('../mat/lidar/truck/RiProcess_NoRiPrecision - Scanner VZ-2000 Horizontal - 191209_165234_Scanner_VZ-2000_Horizontal_0 - originalpoints, (last).mat');
-
+drone = load('../mat/lidar/drone/20191209_00582_TorreyRunup_H3.mat')
+truck = load('../mat/lidar/truck/RiProcess_NoRiPrecision - Scanner VZ-2000 Horizontal - 191209_174131_Scanner_VZ-2000_Horizontal_0 - originalpoints, (last).mat');
+figureDir = '../viz/';
+figureName = 'truckanddrone';
 
 %% take a look at the length of time of each collect
 figure
@@ -26,6 +27,26 @@ fs_drone = 1/dt_drone;
 % y = resample(truck.Processed.
 
 %%
-plot(truck.Processed.t,truck.Processed.Zinterp2(:,350))
+clf
+tTruck = datetime(truck.Processed.t,'ConvertFrom','datenum');
+tDrone = datetime(drone.Processed.t,'ConvertFrom','datenum');
+%%
+figwidth = 6;
+figheight = 3;
+nrow = 1;
+ncol = 1;
+
+[hFig, ax] = makeFig(figwidth,figheight,nrow,ncol,'units','inches');
+xloc = 335;
+plot(tTruck+seconds(18),truck.Processed.Zinterp2(:,xloc),'linewidth',2)
 hold on
-plot(drone.Processed.t,drone.Processed.Zinterp2(:,350))
+plot(tDrone,drone.Processed.Zinterp2(:,xloc),'linewidth',2)
+ylabel('z NAVD88, m')
+title(['Water Level, x = ' num2str(drone.Processed.x(xloc)) ' m'])
+legend('truck','drone')
+
+ax(1).XLim = [datetime(2019,12,9,17,54,0) datetime(2019,12,9,17,58,0)];
+ax(1).Position(2) = 0.15;
+
+print(hFig, '-djpeg', [figureDir figureName '.jpeg'],'-r300');
+
