@@ -20,9 +20,10 @@ elseif dstart ~=1
 end
 
 sunstart = dateshift(filedate,'dayofweek','sunday','previous');
+sunstart = dateshift(sunstart,'start','day');
 
 % account for leapseconds
-if nargin<3 && year(sunstart) >=2020
+if nargin<3 && year(sunstart) >=2019
     leapseconds = 18;
 elseif nargin<3 && year(sunstart) ~=2019
     disp('Please enter in leapseconds for your time period')
