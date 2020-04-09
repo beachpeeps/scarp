@@ -57,7 +57,7 @@ for parosNum = 2:10
     %% loop through all hourly files, correct for hourly clock drift, convert to depth
     for nhour=1:nfile
         parosStartTime = dateSORT(nhour);
-        waitbar(100*nhour/nfile,f,sprintf('%3.1f',100*nhour/nfile))
+        waitbar(nhour/nfile,f,sprintf('%3.1f',100*nhour/nfile))
         % get start time of file
         startTime = parosStartTime + (hourDriftCorrection*(nhour-1));
         
