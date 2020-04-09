@@ -26,7 +26,7 @@ clockdrift = [-6 -1 0 -1 -5 2 -4 1 3 0]; % negative: paros is fast, positive: pa
 %%
 
 % loop through all paros
-for parosNum = 1:length(ParosName)
+for parosNum = 2:10
     
     % get list of all hourly files on the server
     fileList = dir([parosFolder '/' parosName(parosNum).name '/*00.dat']);
@@ -49,7 +49,6 @@ for parosNum = 1:length(ParosName)
     
     %% calculate clock drift correction over all time (add/subtract drift to/off total)
     cdrift = clockdrift(parosNum); % negative: paros is fast, positive: paros is slow
-    parosStartTime = dateSORT(1);
     
     hourDriftCorrection = cdrift/(nfile-1);  %%% amount of seconds to change to each file
     hourDriftCorrection = hourDriftCorrection/(60*60*24);   %%% amount of a day
@@ -57,6 +56,7 @@ for parosNum = 1:length(ParosName)
     f = waitbar(0,'0%','Name',['Processing ' parosName(parosNum).name]);
     %% loop through all hourly files, correct for hourly clock drift, convert to depth
     for nhour=1:nfile
+        parosStartTime = dateSORT(nhour);
         waitbar(100*nhour/nfile,f,sprintf('%3.1f',100*nhour/nfile))
         % get start time of file
         startTime = parosStartTime + (hourDriftCorrection*(nhour-1));
