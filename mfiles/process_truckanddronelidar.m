@@ -1,4 +1,4 @@
-function [Processed,xyzti] = process_truckanddronelidar(filedir, filename, savedir, drone)
+function [Processed,xyzti] = process_truckanddronelidar(filedir, filename, savedir, drone, dxgrid)
 % PROCESS_TRUCKANDDRONELIDAR 
 % This function does the initial gridding of the lidar data, puts things
 % into the local coordinate system, and saves to a mat file for future QC
@@ -142,7 +142,7 @@ end
 
 %%
 [I,J] = size(Rmat);
-xi_interp = [-200:0.5:20]; % HARD CODE for region we care about
+xi_interp = [-200:dxgrid:20]; % HARD CODE for region we care about
 
 Zinterp = nan(I,length(xi_interp));
 for m=3:I
@@ -188,8 +188,8 @@ Processed.Ainterp = Ainterp;
 Processed.t = Tmat(:,1)';
 
 
-% save(['../mat/lidar/drone/' filename(1:end-4)],'Processed','xyzti');
-save(['../mat/lidar/truck/' filename(1:end-4)],'Processed','xyzti');
+save(['../mat/lidar/drone/' filename(1:end-4)],'Processed','xyzti');
+% save(['../mat/lidar/truck/' filename(1:end-4)],'Processed','xyzti');
 
 %% 
 hFig = figure;
