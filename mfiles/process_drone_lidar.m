@@ -1,9 +1,12 @@
-% function process_trucklidar(filedir, filename, savedir)
-% filedir = '/Volumes/group/LiDAR/Waves/20191122_TorreyPines_Runup_Test/RiProcessMethod1/';
-filedir = '~/Desktop/';
+% process_drone_lidar
+% needs to be cleaned up, but uploading to github as is, in most
+% embarassing form.
+% loosely based on ERDC FRF's lidar processing code from 2014
+% April 21,2020 Julia Fiedler jfiedler@ucsd.edu
+filedir = '../data/las/drone/';
 filename = dir([filedir '*.las']);
 %%
-nfile = 1;
+nfile = 6;
 c = lasdata([filedir filename(nfile).name]);
 t = get_gps_time(c);
 
@@ -28,6 +31,19 @@ z = z(I);
 zz = z;
 amp = intensity(I);
 
+% cutoff bad data
+% TO DO: CAN WE find this automatically? This is not good programming.
+newInd = 1.3e6:length(x);
+
+x = x(newInd);
+y= y(newInd);
+z = z(newInd);
+zz = z;
+amp = amp(newInd);
+T = T(newInd);
+
+
+
 % make structure
 xyzti.x = x;
 xyzti.y = y;
@@ -38,45 +54,23 @@ xyzti.i = amp;
 %% plot data in 3D
 % view(40,35)
 
-ind = 1200000:1000:length(x);
+ind = 1300000:1000:length(x);
 scatter3(x(ind),y(ind),zz(ind),30,T(ind))
 
 
 
-%% find lidar origin
-% LO = load('../mat/lidarorigin');
-% LOtime = LO.time./secondsinoneday;
-% LOtime = LOtime+sunstart;
-% indstart = knnsearch(T,T(1));
-% indstop = knnsearch(LOtime,T(end));
-% LOx = mean(LO.x(indstart:indstop));
-% LOy = mean(LO.y(indstart:indstop));
-%%
-% LOx = max(x);
-% LOy = min(y);
-%% take off base x and base y for easier units
-% for ifile = 3:5
-% basex = 4.7e5;
-% basey = 3.662e6;
+%% put into local coordinate system
 
-% for ifile = 9
-P1x = 475717.773;
-P1y = 3643277.282;
+load('../mat/sensors.mat')
 
-x = x-P1x;
-y = y-P1y;
-r=sqrt(x.^2+y.^2); %range
+THETA = deg2rad(theta);
+XO = P.UTMEastings_Zone11_(1);
+YO = P.UTMNorthings_Zone11_(1);
+
+[xr YR] = xyRotate(x,y,THETA,XO,YO);
 %%
 clf
 plot(y,'.')
-%%
-% for ifile = 3:5
-% xgrid = [20:0.1:120];
-
-% for ifile = 9
-% xgrid = [0:0.1:150];
-% 
-% ygrid = [780:0.1:820];
 
 %% loop on r
 scanN = find(diff(y)<-4);
@@ -94,6 +88,7 @@ scangle = get_scan_angle(c);
 %%
 % scangle = get_scan_angle(c);
 scangle = scangle(I);
+scangle = scangle(newInd);
 %%
 % scangle = double(scangle);
 % scanN = find(abs(diff(scangle))>5);
@@ -112,7 +107,7 @@ sctemp = y(1:scanN(1));
 minloc = find(sctemp == min(sctemp),1);
 indstart = [scanN(1)+minloc-1; indstart];
 
-
+%%
 clf
 plot(y,'.')
 hold on
@@ -134,9 +129,9 @@ Rmat = NaN(I,J);
 Zmat = NaN(I,J);
 Amat = NaN(I,J);
 
-for i=1:I
+for i=40:I
     Tmat(i,1:scanDIFF(i)) = T(ind_scanstart(i):(ind_scanstart(i)+numPTSscan(i)-1));
-    Rmat(i,1:scanDIFF(i)) = x(ind_scanstart(i):(ind_scanstart(i)+numPTSscan(i)-1));
+    Rmat(i,1:scanDIFF(i)) = xr(ind_scanstart(i):(ind_scanstart(i)+numPTSscan(i)-1));
     Zmat(i,1:scanDIFF(i)) = z(ind_scanstart(i):(ind_scanstart(i)+numPTSscan(i)-1));
     Amat(i,1:scanDIFF(i)) = amp(ind_scanstart(i):(ind_scanstart(i)+numPTSscan(i)-1));
 
@@ -154,7 +149,7 @@ end
 
 %%
 [I,J] = size(Rmat);
-xi_interp = [-100:0.2:100]; % HARD CODE for region we care about
+xi_interp = [-200:0.25:50]; % HARD CODE for region we care about
 
 Zinterp = nan(I,length(xi_interp));
 for m=3:I
@@ -175,7 +170,10 @@ dxi=mean(diff(xi))/2;
 Zinterp2=nan(M,length(xi));
 Ainterp=nan(M,length(xi));
 %%
+f = waitbar(0,'Getting Zinterp2');
+
 for a=1:M
+    waitbar(a/M,f)
     r=Rmat(a,:);
     z=Zmat(a,:);
     amp=Amat(a,:);
@@ -188,7 +186,7 @@ for a=1:M
     end
 end
 
-xi_interp = -xi_interp;
+% xi_interp = -xi_interp;
 
 %denoise
 %% save data
@@ -198,11 +196,12 @@ Processed.Zinterp2 = Zinterp2;
 Processed.Ainterp = Ainterp;
 Processed.t = Tmat(:,1)';
 
+filedir = '../data/las/drone/';
+filename = dir([filedir '*.las']);
 
 
-
-savedir = '~/GoogleDriveUCSD/TorreyLidarTest/Method2/';
-% save([savedir filename(1).name],'Processed','xyzti');
+savedir = '../mat/lidar/drone/';
+save([savedir filename(nfile).name(1:end-4) '.mat'],'Processed','xyzti');
 %% 
 hFig = figure;
 pcolor(xi_interp,Processed.t(1:1:end),Processed.Zinterp2(1:1:end,:));
@@ -212,7 +211,7 @@ datetick('y','MM:SS')
 ylabel('Time (MM:SS)')
 title(filename(nfile).name, 'Interpreter', 'none');
 hc = colorbar;
-caxis([-31 -28])
+caxis([2 6])
 hc.Label.String = 'Z ';
 % print(hFig, '-djpeg', [savedir filename(nfile).name(1:23) '_timestack.jpg'],'-r300');
 
@@ -229,7 +228,7 @@ legend('20m','15m','30m')
 ylabel('Drift: Z-mean(Z) (m)')
 datetick('x','MM:SS')
 xlabel('Time (MM:SS')
-print(hFig, '-djpeg', [savedir filename(nfile).name '_drift.jpg'],'-r300');
+% print(hFig, '-djpeg', [savedir filename(nfile).name '_drift.jpg'],'-r300');
 
 
 %%
