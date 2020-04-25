@@ -1,4 +1,4 @@
-function [Processed,xyzti] = process_truckanddronelidar(filedir, filename, savedir, drone, dxgrid)
+function [Processed,xyzti] = process_truckanddronelidar(filedir, filename, vizdir, drone, dxgrid)
 % PROCESS_TRUCKANDDRONELIDAR 
 % This function does the initial gridding of the lidar data, puts things
 % into the local coordinate system, and saves to a mat file for future QC
@@ -44,11 +44,11 @@ xyzti.z = z;
 xyzti.t = T;
 xyzti.i = amp;
 
+%% put into local coordinate system, rotate around P1
 
-%% rotate around P1, and transect angle
-load('../mat/sensors.mat','P')
-thetadeg = 352;
-THETA = deg2rad(thetadeg);
+load('../mat/sensors.mat')
+
+THETA = deg2rad(theta);
 XO = P.UTMEastings_Zone11_(1);
 YO = P.UTMNorthings_Zone11_(1);
 
@@ -146,6 +146,7 @@ xi_interp = [-200:dxgrid:20]; % HARD CODE for region we care about
 
 Zinterp = nan(I,length(xi_interp));
 for m=3:I
+    
     X = reshape(Rmat(m,:),1,J);
     Z = reshape(Zmat(m,:),1,J);
     [C,ia,ic] = unique(X,'stable');
@@ -156,6 +157,7 @@ for m=3:I
     end
 end
 
+
 pcolor(Zinterp); shading flat
 %%
 [M,~]=size(Rmat);
@@ -164,7 +166,9 @@ dxi=mean(diff(xi))/2;
 Zinterp2=nan(M,length(xi));
 Ainterp=nan(M,length(xi));
 %%
+f = waitbar(0,'Getting Zinterp2');
 for a=1:M
+    waitbar(a/M,f)
     r=Rmat(a,:);
     z=Zmat(a,:);
     amp=Amat(a,:);
@@ -176,7 +180,7 @@ for a=1:M
         end
     end
 end
-
+close(f)
 % xi_interp = -xi_interp;
 
 %denoise
@@ -188,7 +192,7 @@ Processed.Ainterp = Ainterp;
 Processed.t = Tmat(:,1)';
 
 
-save(['../mat/lidar/drone/' filename(1:end-4)],'Processed','xyzti');
+save(['../mat/lidar/drone/' filename],'Processed','xyzti');
 % save(['../mat/lidar/truck/' filename(1:end-4)],'Processed','xyzti');
 
 %% 
@@ -202,24 +206,24 @@ title(filename, 'Interpreter', 'none');
 hc = colorbar;
 caxis([0.5 2])
 hc.Label.String = 'Z ';
-print(hFig, '-djpeg', ['../viz/' filename '_timestack.jpg'],'-r300');
+print(hFig, '-djpeg', [vizdir filename '_timestack.jpg'],'-r300');
 
 
-% %%
-% hFig = figure;
-% plot(Processed.t,Zinterp2(:,6)-nanmean(Zinterp2(:,6)))
-% hold on
-% plot(Processed.t,Zinterp2(:,11)-nanmean(Zinterp2(:,11)))
-% plot(Processed.t,Zinterp2(:,16)-nanmean(Zinterp2(:,16)))
-% ylim([-0.6 0.6])
-% xi_interp([6 11 16])
-% legend('5m','10m','15m')
-% ylabel('Drift: Z-mean(Z) (m)')
-% datetick('x','MM:SS')
-% xlabel('Time (MM:SS')
-% title(filename(nfile).name, 'Interpreter', 'none');
+%%
+hFig = figure;
+plot(Processed.t,Zinterp2(:,6)-nanmean(Zinterp2(:,6)))
+hold on
+plot(Processed.t,Zinterp2(:,11)-nanmean(Zinterp2(:,11)))
+plot(Processed.t,Zinterp2(:,16)-nanmean(Zinterp2(:,16)))
+ylim([-0.6 0.6])
+xi_interp([6 11 16])
+legend('5m','10m','15m')
+ylabel('Drift: Z-mean(Z) (m)')
+datetick('x','MM:SS')
+xlabel('Time (MM:SS')
+title(filename(nfile).name, 'Interpreter', 'none');
 
-% print(hFig, '-djpeg', [savedir filename(nfile).name '_drift.jpg'],'-r300');
+print(hFig, '-djpeg', [vizdir filename(nfile).name '_drift.jpg'],'-r300');
 
 
 %%
