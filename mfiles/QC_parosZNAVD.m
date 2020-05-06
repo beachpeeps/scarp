@@ -132,7 +132,7 @@ YO = P.UTMNorthings_Zone11_(1);
 
 %% Make a figure that shows the mean sea surface from the drone lidar (about a 20 min record)
 
-load('/Users/juliafiedler/Documents/Repositories/scarp/mat/lidar/drone/20191214_H1_navd88_geoid12b.mat')
+load('/Users/juliafiedler/Documents/Repositories/scarp/mat/lidar/drone/20200224_00582_TorreyRunup_H1.mat')
 
 % pressure sensors and tides are averaged over the same time period
 % need a fix for drone scans that run over 2 hourly records (there will be
