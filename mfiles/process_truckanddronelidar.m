@@ -46,7 +46,7 @@ xyzti.i = amp;
 
 %% put into local coordinate system, rotate around P1
 
-load('../mat/sensors.mat')
+load('../mat/sensors.mat','P','theta')
 
 THETA = deg2rad(theta);
 XO = P.UTMEastings_Zone11_(1);
@@ -78,8 +78,8 @@ if drone ==1
     scangle = scangle*0.006;
 end
 
-scanN = find(abs(diff(scangle))>30); % not sure how to define this
-scanN = find(abs(diff(scangle))>20); % seems to work better for dec 9 truck
+scanN = find(abs(diff(scangle))>90); % not sure how to define this
+% scanN = find(abs(diff(scangle))>20); % seems to work better for dec 9 truck
 
 
 indstart = nan(length(scanN)-1,1);
@@ -157,7 +157,7 @@ for m=3:I
     end
 end
 
-
+figure
 pcolor(Zinterp); shading flat
 %%
 [M,~]=size(Rmat);
@@ -221,9 +221,9 @@ legend('5m','10m','15m')
 ylabel('Drift: Z-mean(Z) (m)')
 datetick('x','MM:SS')
 xlabel('Time (MM:SS')
-title(filename(nfile).name, 'Interpreter', 'none');
+title(filename, 'Interpreter', 'none');
 
-print(hFig, '-djpeg', [vizdir filename(nfile).name '_drift.jpg'],'-r300');
+print(hFig, '-djpeg', [vizdir filename '_drift.jpg'],'-r300');
 
 
 %%
