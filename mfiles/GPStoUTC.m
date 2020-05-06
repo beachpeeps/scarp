@@ -16,7 +16,7 @@ elseif dstart == 1
 elseif dstart ~=1
     dd = [dstart; dstart+5]';
     dstr = filename([dd(1,1):dd(1,2) dd(2,1):dd(2,2)]);
-    filedate = datetime(dstr,'InputFormat','yyyyMMddHHmmss');
+    filedate = datetime(dstr,'InputFormat','yyyyMMddHHmm');
 end
 
 sunstart = dateshift(filedate,'dayofweek','sunday','previous');
