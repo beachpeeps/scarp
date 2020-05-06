@@ -4,7 +4,7 @@
 
 
 
-% clear
+clear
 % filename = '~/Desktop/Copy of DeploymentNotes2019-2020.xls';
 % P = readtable(filename,'Range','A18:O27','ReadVariableNames',false,'ReadRowNames',true);
 % VarNames = readtable(filename,'Range','A1:O2','ReadRowNames',true);
@@ -12,10 +12,11 @@
 
 %%
 filedir = '~/Documents/Repositories/scarp/data/las/truck/';
-filename = dir([filedir '*.txt']);
+filename = dir([filedir 'WaveScanDrone*.txt']);
 
-nfile = 1;
+nfile = 4;
 A = importdata([filedir filename(nfile).name]);
+header = {'PID','x','y','z','range','amp','time','reflectance','theta','targetIndex','targetCount'};
 % phi,x,y,z,range,amp,time,reflectance
 tGPS = A(:,7);
 
@@ -28,39 +29,54 @@ tGPS = A(:,7);
 [T, sortedInd] = sort(tUTC);
 A = A(sortedInd,:);
 
-phi = A(:,1);
+PID = A(:,1);
 x = A(:,2);
 y = A(:,3);
 z = A(:,4);
 range =A(:,5);
 amp = A(:,6);
 reflectance =A(:,8);
+theta = A(:,9);
+targetIndex = A(:,10);
+targetCount = A(:,11);
+
+% quick cleanup for visualization porpoises
+notspray = find(reflectance>-32);
+
+theta = theta(notspray);
 
 
 
 % make structure
-xyzti.x = x;
-xyzti.y = y;
-xyzti.z = z;
-xyzti.t = T;
-xyzti.i = amp;
+xyzti.x = x(notspray);
+xyzti.y = y(notspray);
+xyzti.z = z(notspray);
+xyzti.t = T(notspray);
+xyzti.i = amp(notspray);
 
 
 %% rotate around P1, and transect angle
 
 %% put into local coordinate system, rotate around P1
 
-load('../mat/sensors.mat','P','theta')
+Paros = load('../mat/sensors.mat','P','theta');
 
-THETA = deg2rad(theta);
-XO = P.UTMEastings_Zone11_(1);
-YO = P.UTMNorthings_Zone11_(1);
+THETA = deg2rad(Paros.theta);
+XO = Paros.P.UTMEastings_Zone11_(1);
+YO = Paros.P.UTMNorthings_Zone11_(1);
 
-[XR YR] = xyRotate(x,y,THETA,XO,YO);
-%
-ind = 1:1000:length(z);
+[XR YR] = xyRotate(xyzti.x,xyzti.y,THETA,XO,YO);
+%%
+clf
+ind = 1:1000:length(xyzti.z);
 hold on
-scatter(XR(ind),z(ind),10,T(ind))
+scatter(XR(ind),xyzti.z(ind),10,xyzti.t(ind))
+%%
+% clf
+% ind = 1:1000:length(z);
+
+% scatter(x(ind),z(ind),10,tGPS(ind))
+% caxis([-40 15])
 % view(40,35)
 %%
 clf
@@ -88,29 +104,29 @@ plot(XR,'.')
 % tt(i) = T(scanN(i));
 % end
 %%
-scanN = find((diff(phi))<-20);
+scanN = find(abs(diff(theta))>5);
 
 indstart = nan(length(scanN)-1,1);
 %find when to start the scan
 for i=1:length(scanN)-1
-    sctemp = phi(scanN(i)+1:scanN(i+1));
+    sctemp = theta(scanN(i)+1:scanN(i+1));
 %     ltemp = min(sctemp);
     minloc = find(sctemp == min(sctemp),1);
     indstart(i) = scanN(i)+minloc;
 end
 
 % add first scan
-sctemp = phi(1:scanN(1));
+sctemp = theta(1:scanN(1));
 minloc = find(sctemp == min(sctemp),1);
 indstart = [minloc; indstart];
 
 
 %%
 clf
-plot(phi,'.')
+plot(theta,'.')
 hold on
-plot(scanN,phi(scanN),'or')
-plot(indstart,phi(indstart),'og')
+plot(scanN,theta(scanN),'or')
+plot(indstart,theta(indstart),'og')
 % amp = get_intensity(c);
 %%
 
@@ -128,10 +144,10 @@ Zmat = NaN(I,J);
 Amat = NaN(I,J);
 
 for i=1:I
-    Tmat(i,1:scanDIFF(i)) = T(ind_scanstart(i):(ind_scanstart(i)+numPTSscan(i)-1));
+    Tmat(i,1:scanDIFF(i)) = xyzti.t(ind_scanstart(i):(ind_scanstart(i)+numPTSscan(i)-1));
     Rmat(i,1:scanDIFF(i)) = XR(ind_scanstart(i):(ind_scanstart(i)+numPTSscan(i)-1));
-    Zmat(i,1:scanDIFF(i)) = z(ind_scanstart(i):(ind_scanstart(i)+numPTSscan(i)-1));
-    Amat(i,1:scanDIFF(i)) = amp(ind_scanstart(i):(ind_scanstart(i)+numPTSscan(i)-1));
+    Zmat(i,1:scanDIFF(i)) = xyzti.z(ind_scanstart(i):(ind_scanstart(i)+numPTSscan(i)-1));
+    Amat(i,1:scanDIFF(i)) = xyzti.i(ind_scanstart(i):(ind_scanstart(i)+numPTSscan(i)-1));
 
     
     ind_good = find(~isnan(Tmat(i,:)));
@@ -147,7 +163,7 @@ end
 
 %%
 [I,J] = size(Rmat);
-xi_interp = [-200:0.5:0]; % HARD CODE for region we care about
+xi_interp = [-200:0.5:20]; % HARD CODE for region we care about
 
 Zinterp = nan(I,length(xi_interp));
 for m=3:I
@@ -194,7 +210,7 @@ Processed.t = Tmat(:,1)';
 
 
 savedir = '../mat/lidar/truck/';
-save([savedir filename(nfile).name],'Processed','xyzti');
+save([savedir filename(nfile).name(1:end-4)],'Processed','xyzti');
 %% 
 hFig = figure;
 pcolor(xi_interp,Processed.t(1:1:1500),Processed.Zinterp2(1:1:1500,:));
@@ -206,7 +222,7 @@ title(filename(nfile).name, 'Interpreter', 'none');
 hc = colorbar;
 caxis([0.25 2.5])
 hc.Label.String = 'Z navd88 (m) ';
-print(hFig, '-djpeg', ['../viz/' filename(nfile).name(28:42) '_timestack.jpg'],'-r300');
+print(hFig, '-djpeg', ['../viz/' filename(nfile).name(1:end-4) '_timestack.jpg'],'-r300');
 
 
 % %%
