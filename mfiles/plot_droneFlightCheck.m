@@ -1,6 +1,6 @@
 clear
 hFig = figure;
-hoverN = 2;
+hoverN = 3;
 
 addpath /Users/juliafiedler/Documents/SWASH_runup/mfiles/functions/
 vizdir = '../viz/';
@@ -102,9 +102,11 @@ end
 t = paros(pnum).t(indHour(pnum))+ (0:7166)*seconds(0.5)-seconds(1);
 %% plot everything at pnum location
 figure
-ax(1) = subplot(2,1,1);
+% ax(1) = subplot(2,1,1);
 pnum = 4;
-plot(t,paros(pnum).etaCorrected(:,indHour(pnum))-paros(pnum).offset+paros(pnum).z,'linewidth',2)
+% plot(t,paros(pnum).etaCorrected(:,indHour(pnum))-paros(pnum).offset+paros(pnum).z,'linewidth',2)
+plot(t,paros(pnum).etaCorrected(:,indHour(pnum))-0.15+paros(pnum).z,'linewidth',2)
+
 hold on
 
 %find xlocation in processed drone/truck data
@@ -112,25 +114,25 @@ hold on
 xloc = knnsearch(drone.Processed.x',paros(pnum).crossshore);
 
 plot(datetime(drone.Processed.t,'ConvertFrom','datenum'),drone.Processed.Zinterp2(:,xloc))
-plot(datetime(truck.Processed.t,'ConvertFrom','datenum'),truck.Processed.Zinterp2(:,xloc),'.')
-plot(datetime(truck.Processed.t,'ConvertFrom','datenum'),truck.Processed.Zinterp(:,xloc))
+plot(datetime(truck.Processed.t,'ConvertFrom','datenum'),truck.Processed.Zinterp2(:,xloc))
+% plot(datetime(truck.Processed.t,'ConvertFrom','datenum'),truck.Processed.Zinterp(:,xloc))
 
-xlim(datetime([minTime maxTime],'ConvertFrom','datenum'))
+xlim([datetime(minTime ,'ConvertFrom','datenum')+minutes(2.5) datetime(minTime,'ConvertFrom','datenum')+minutes(4)])
 title(['Hover ' num2str(hoverN) ' : x= ' num2str(paros(pnum).crossshore,'%2.2f') 'm'])
 legend(paros(pnum).name(1:3),'drone','truck')   
 ylabel('zNAVD (m)')
 
 
-ax(2) = subplot(2,1,2);
-P4x = find(truck.xyzti.x>floor(paros(4).UTMx) & truck.xyzti.x<ceil(paros(4).UTMx));
-plot(datetime(truck.xyzti.t(P4x),'ConvertFrom','datenum'),truck.xyzti.i(P4x),'.')
-
-
-xlim(datetime([minTime maxTime],'ConvertFrom','datenum'))
-% title(['Hover ' num2str(hoverN) ' : x= ' num2str(paros(pnum).crossshore,'%2.2f') 'm'])
-% legend(paros(pnum).name(1:3),'drone','truck')   
-ylabel('zNAVD (m)')
-linkaxes(ax,'x')
-% print(gcf, '-djpeg', [vizdir 'droneTSCheck_0224_H' num2str(hoverN,'%d') '_' paros(pnum).name(1:3) '.jpeg'],'-r300');
+% ax(2) = subplot(2,1,2);
+% P4x = find(truck.xyzti.x>floor(paros(4).UTMx) & truck.xyzti.x<ceil(paros(4).UTMx));
+% plot(datetime(truck.xyzti.t(P4x),'ConvertFrom','datenum'),truck.xyzti.i(P4x),'.')
+% 
+% 
+% xlim(datetime([minTime maxTime],'ConvertFrom','datenum'))
+% % title(['Hover ' num2str(hoverN) ' : x= ' num2str(paros(pnum).crossshore,'%2.2f') 'm'])
+% % legend(paros(pnum).name(1:3),'drone','truck')   
+% ylabel('zNAVD (m)')
+% linkaxes(ax,'x')
+print(gcf, '-djpeg', [vizdir 'droneTSCheck_0224_H' num2str(hoverN,'%d') '_' paros(pnum).name(1:3) '.jpeg'],'-r300');
 
 
