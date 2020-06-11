@@ -1,6 +1,6 @@
 function [Spec,Info,Bulk,Tseries] = get_runupStatsLidar(modDir,varargin)
 % [Spec,Info,Bulk,Tseries,Sur] = get_runupStats(modDir,inputDate,varargin)
-% This function processes the gridded Lidar data from Cortez to get
+% This function processes the gridded Lidar data from Torrey Pines to get
 % the runup line, as defined by Stockdon et al, 2006.
 %
 % Input
@@ -37,11 +37,13 @@ options = parseOptions( options , varargin );
 %% Load the processed lidar
 
 
-load(modDir,'filename','Processed','filedir');
+% load(modDir,'filename','Processed','filedir');
+load(modDir,'Processed');
+
 
 %%
 nt = length(Processed.t);
-xx = Processed.range;
+xx = Processed.x;
 M = movmin(Processed.Zinterp2,1000,1,'omitnan'); % get moving minimum for foreshore
 %%
 RunupImage = nan(1,nt);
@@ -51,68 +53,68 @@ flag = zeros(1,nt);
 
 %%
 
-L2 = [-10 50; options.threshold options.threshold];
+L2 = [-40 30; options.threshold options.threshold];
 tol = 1e-6;
 
-for i=1:nt
+for ii=1:nt 
     %
-    indM = i-500:i+500; % take minumum over a window of 1000 pts in time
+    indM = ii-500:ii+500; % take minumum over a window of 1000 pts in time
     indM = indM(indM>1 & indM<nt ); % cut off window length at ends of tseries
     %     wlevtemp =Processed.Zinterp(i,:)-medfilt1(min(M(indM,:)),3);
     %     wlevtemp = medfilt1(wlevtemp,3);
-    wlevtemp2 = Processed.Zinterp(i,:)-medfilt1(min(M(indM,:)),3);
+    wlevtemp2 = Processed.Zinterp(ii,:)-medfilt1(min(M(indM,:)),3);
     L1 = [xx;wlevtemp2];
     %     L1c = [xx;wlevtemp2];
-    if i>4 && ~isnan(RunupImage(i-1))
-        prev3 = nanmean(RunupImage(i-4:i-1));
+    if ii>4 && ~isnan(RunupImage(ii-1))
+        prev3 = nanmean(RunupImage(ii-4:ii-1));
         L2 = [prev3-5 prev3+5; options.threshold options.threshold];
     end
     runupline = InterX(L1,L2);
     
     if ~isempty(runupline)
         %         %make a moving window over which to look for runupline
-        RunupImage(i) = runupline(1);
+        RunupImage(ii) = runupline(1);
         %         idxrunup(i) = find(abs(xx-round(runupline(1)*10)/10)<tol);
     else
         %
         %         L2 = [-10 45; options.threshold options.threshold];
         %         %expand the search area if i>5
-        if i>5 && ~isnan(nanmean(RunupImage(i-4:i-1)))
-            prev3 = nanmean(RunupImage(i-4:i-1));
+        if ii>5 && ~isnan(nanmean(RunupImage(ii-4:ii-1)))
+            prev3 = nanmean(RunupImage(ii-4:ii-1));
             L2 = [prev3-10 prev3+10; options.threshold+0.01 options.threshold+0.01];
             %         L2 = [-10 45; options.threshold options.threshold];
             
-        elseif i>5 && isnan(nanmean(RunupImage(i-4:i-1)))
-            L2 = [-10 45; options.threshold options.threshold];
+        elseif ii>5 && isnan(nanmean(RunupImage(ii-4:ii-1)))
+            L2 = [-40 45; options.threshold options.threshold];
             
         end
         
         runupline = InterX(L1,L2);
         if ~isempty(runupline)
-            RunupImage(i) = runupline(1);
+            RunupImage(ii) = runupline(1);
         else
-            RunupImage(i) = NaN;
+            RunupImage(ii) = NaN;
         end
     end
     %
-    %     clf
-    %     plot(L1(1,:),L1(2,:))
-    %     hold on
-    %     plot(L2(1,:),L2(2,:))
-    % %         plot(L1c(1,:),L1c(2,:),'o')
+%         clf
+%         plot(L1(1,:),L1(2,:))
+%         hold on
+%         plot(L2(1,:),L2(2,:))
+% %             plot(L1c(1,:),L1c(2,:),'o')
+%     
+%     % %     pause
+%     % %
+%         xlim([-40 50])
+%         ylim([0 1.5])
+%     % %         pause
+% %         plot(xx,Processed.Zinterp(i,:))
+%         title(ii)
+%         ii=ii+1;
+%      %
+% %     pause(0.1)%
+%     pause
     %
-    % % %     pause
-    % % %
-    %     xlim([-20 50])
-    %     ylim([0 1.5])
-    % % %         pause
-    % %     plot(xx,Processed.Zinterp(i,:))
-    %     title(i)
-    %     i=i+1;
-    %  %%
-    % % pause(0.1)%
-    % % pause
-    % %
     
     
     clear wlevtemp L1 runupline
@@ -221,8 +223,8 @@ Info.Hz = 1/dt;
 Info.threshold = options.threshold;
 Info.datahour = datetime(Processed.t(3),'ConvertFrom','datenum');
 Info.duration = seconds((Processed.t(end)-Processed.t(3))*24*60*60);
-Info.rawFilename = filename;
-Info.rawFiledir = filedir;
+% Info.rawFilename = filename;
+% Info.rawFiledir = filedir;
 Info.processedFilename = modDir;
 
 Bulk.swashparams = swashparams;
