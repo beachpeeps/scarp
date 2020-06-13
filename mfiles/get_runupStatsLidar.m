@@ -62,7 +62,15 @@ for ii=1:nt
     indM = indM(indM>1 & indM<nt ); % cut off window length at ends of tseries
     %     wlevtemp =Processed.Zinterp(i,:)-medfilt1(min(M(indM,:)),3);
     %     wlevtemp = medfilt1(wlevtemp,3);
-    wlevtemp2 = Processed.Zinterp(ii,:)-medfilt1(min(M(indM,:)),3);
+    
+    
+    if ii>2 && ii<nt
+        watline = median(Processed.Zinterp(ii-1:ii+1,:));
+        wlevtemp2 = watline-medfilt1(min(M(indM,:)),3);
+    else
+            wlevtemp2 = Processed.Zinterp(ii,:)-medfilt1(min(M(indM,:)),3);
+    end
+
     L1 = [xx;wlevtemp2];
     %     L1c = [xx;wlevtemp2];
     if ii>4 && ~isnan(RunupImage(ii-1))
@@ -112,9 +120,9 @@ for ii=1:nt
 %         title(ii)
 %         ii=ii+1;
 %      %
-% %     pause(0.1)%
-%     pause
-    %
+%     pause(0.01)%
+% %     pause
+    
     
     
     clear wlevtemp L1 runupline
@@ -178,7 +186,7 @@ foreshore = nanmin(Processed.Zinterp2(:,nanvar(M)<0.01));
 foreshorex = xx(nanvar(M)<0.01);
 
 %super kluge rescue
-rmInd = find(foreshorex<10);
+rmInd = find(foreshorex<-30);
 foreshore(rmInd) = [];
 foreshorex(rmInd) = [];
 
@@ -189,10 +197,10 @@ foreshore(rmInd) = [];
 foreshorex(rmInd) = [];
 
 % all x should be connected:
-rmInd = find(diff(foreshorex)>1);
+% rmInd = find(diff(foreshorex)>1);
 
-foreshore(rmInd) = [];
-foreshorex(rmInd) = [];
+% foreshore(rmInd) = [];
+% foreshorex(rmInd) = [];
 
 botRange = find(foreshore>=minEta & foreshore<=maxEta);
 
