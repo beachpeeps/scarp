@@ -75,7 +75,7 @@ for ii=1:nt
     %     L1c = [xx;wlevtemp2];
     if ii>4 && ~isnan(RunupImage(ii-1))
         prev3 = nanmean(RunupImage(ii-4:ii-1));
-        L2 = [prev3-5 prev3+5; options.threshold options.threshold];
+        L2 = [prev3-8 prev3+8; options.threshold options.threshold];
     end
     runupline = InterX(L1,L2);
     
@@ -158,8 +158,12 @@ Zrunup(RunupImage==1) = nan;
 
 %%
 
-dt = nanmean(diff(Processed.t*24*60*60));
+dt = nanmean(diff(Processed.t*24*60*60)); 
 dt = floor(dt*10)./10; % want accuracy only to 0.1
+if dt == 0 %kluge fix for drone lidar timestep
+    dt = nanmean(diff(Processed.t*24*60*60)); 
+    dt = ceil(dt*10)./10; % want accuracy only to 0.1
+end
 
 
 ZZ = inpaint_nans(Zrunup);
