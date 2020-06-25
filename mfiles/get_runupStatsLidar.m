@@ -30,6 +30,7 @@ options.threshold = 0.1;
 options.windowlength = 5; % in minutes, for spectra windows
 options.dx = 0.1; % for gridding the runup onto something finer
 options.g = 9.81;
+options.tchunk = [];
 % options.Tm = 10;
 % options.wlev = 0;
 
@@ -42,9 +43,36 @@ load(modDir,'Processed');
 
 
 %%
+
+if ~isempty(options.tchunk)
+    tind = knnsearch(Processed.t',options.tchunk');
+    Processed.t = Processed.t(tind(1):tind(2));
+    Processed.Zinterp = Processed.Zinterp(tind(1):tind(2),:);
+    Processed.Zinterp2 = Processed.Zinterp2(tind(1):tind(2),:);
+    Processed.Ainterp = Processed.Ainterp(tind(1):tind(2),:);
+end
+
 nt = length(Processed.t);
+
+dt = nanmean(diff(Processed.t*24*60*60)); 
+dt = floor(dt*10)./10; % want accuracy only to 0.1
+if dt == 0 %kluge fix for drone lidar timestep
+    dt = nanmean(diff(Processed.t*24*60*60)); 
+    dt = ceil(dt*10)./10; % want accuracy only to 0.1
+end
+
+IGlength = 25; %seconds
+IGfilt = 25/dt;
+
 xx = Processed.x;
-M = movmin(Processed.Zinterp2,1000,1,'omitnan'); % get moving minimum for foreshore
+% xinterp = [-30:options.dx:10];
+
+% for i=1:nt
+%     Zinterp2(i,:) = interp1(xx,Processed.Zinterp2(i,:),xinterp);
+%     Zinterp(i,:) = interp1(xx,Processed.Zinterp(i,:),xinterp);
+% end
+
+M = movmin(Processed.Zinterp2,IGfilt,1,'omitnan'); % get moving minimum for foreshore on IG freq
 %%
 RunupImage = nan(1,nt);
 idxrunup = ones(1,nt);
@@ -53,29 +81,34 @@ flag = zeros(1,nt);
 
 %%
 
-L2 = [-40 30; options.threshold options.threshold];
+L2 = [-30 0; options.threshold options.threshold];
 tol = 1e-6;
+dx = xx(2)-xx(1);
+msize = 0.5/dx; % find a 50cm width for runup search, such that we look at a 1m window
 
 for ii=1:nt 
+
     %
     indM = ii-500:ii+500; % take minumum over a window of 1000 pts in time
     indM = indM(indM>1 & indM<nt ); % cut off window length at ends of tseries
     %     wlevtemp =Processed.Zinterp(i,:)-medfilt1(min(M(indM,:)),3);
     %     wlevtemp = medfilt1(wlevtemp,3);
     
-    
+    sand = medfilt1(min(M(indM,:)),3);
     if ii>2 && ii<nt
-        watline = median(Processed.Zinterp(ii-1:ii+1,:));
-        wlevtemp2 = watline-medfilt1(min(M(indM,:)),3);
+        watline = median(Processed.Zinterp(ii-1:ii+1,:),'omitnan');
+        wlevtemp2 = watline-sand;
     else
-            wlevtemp2 = Processed.Zinterp(ii,:)-medfilt1(min(M(indM,:)),3);
+            wlevtemp2 = Processed.Zinterp(ii,:)-sand;
     end
+%     wlevtemp2(isnan(wlevtemp2)) = sand(isnan(wlevtemp2));
 
+    
     L1 = [xx;wlevtemp2];
-    %     L1c = [xx;wlevtemp2];
+%         L1c = [xx;wlevtemp2];
     if ii>4 && ~isnan(RunupImage(ii-1))
         prev3 = nanmean(RunupImage(ii-4:ii-1));
-        L2 = [prev3-8 prev3+8; options.threshold options.threshold];
+        L2 = [prev3-msize prev3+msize; options.threshold options.threshold];
     end
     runupline = InterX(L1,L2);
     
@@ -89,22 +122,22 @@ for ii=1:nt
         %         %expand the search area if i>5
         if ii>5 && ~isnan(nanmean(RunupImage(ii-4:ii-1)))
             prev3 = nanmean(RunupImage(ii-4:ii-1));
-            L2 = [prev3-10 prev3+10; options.threshold+0.01 options.threshold+0.01];
+            L2 = [prev3-2*msize prev3+2*msize; options.threshold+0.01 options.threshold+0.01];
             %         L2 = [-10 45; options.threshold options.threshold];
             
         elseif ii>5 && isnan(nanmean(RunupImage(ii-4:ii-1)))
-            L2 = [-40 45; options.threshold options.threshold];
+            L2 = [-30 0; options.threshold options.threshold];
             
         end
         
         runupline = InterX(L1,L2);
         if ~isempty(runupline)
-            RunupImage(ii) = runupline(1);
+            RunupImage(ii) = runupline(1,end);
         else
             RunupImage(ii) = NaN;
         end
     end
-    %
+%     %
 %         clf
 %         plot(L1(1,:),L1(2,:))
 %         hold on
@@ -115,13 +148,13 @@ for ii=1:nt
 %     % %
 %         xlim([-40 50])
 %         ylim([0 1.5])
-%     % %         pause
-% %         plot(xx,Processed.Zinterp(i,:))
-%         title(ii)
+% %     % %         pause
+% % %         plot(xx,Processed.Zinterp(i,:))
+% %         title(ii)
 %         ii=ii+1;
-%      %
-%     pause(0.01)%
-% %     pause
+% %      
+% % %     pause(0.01)%
+% % %     pause
     
     
     
@@ -129,41 +162,46 @@ for ii=1:nt
 end
 
 %if things do not pass the eye-test, we will hand draw the line!!!
-
-
-
-
-
 %%
-R = medfilt1(RunupImage,5);
+
+
+nfilt = 1/dt;
+% nfilt = 5;
+
+R = medfilt1(RunupImage,nfilt,'omitnan');
 RR = inpaint_nans(R);
 idxR = nan(size(RR));
 for i=1:nt
     Rint = round(RR(i).*10/10);
-    if Rint<max(xx)
+    if Rint<max(xx) && Rint>min(xx)
         idxR(i) = find(xx==Rint);
+    elseif Rint<min(xx)
+        idxR(i) = find(xx == min(xx));
     else
         idxR(i) = find(xx == max(xx));
     end
 end
 
 Xrunup = RunupImage;
+% filtZ = medfilt1(Processed.Zinterp2,nfilt,[],1,'omitnan');
+% filtZ = medfilt1(filtZ,nfilt,[],2,'omitnan');
+
 for i=1:nt
-    Zrunup(i) = Processed.Zinterp(i,idxR(i));
+    Zrunup(i) = Processed.Zinterp2(i,idxR(i));
+%         Zrunup(i) = filtZ(i,idxR(i));
+
 end
 
 
 Xrunup(RunupImage==1) = nan;
 Zrunup(RunupImage==1) = nan;
 
+Zrunup = medfilt1(Zrunup,nfilt,'omitnan','truncate');
+Xrunup = RR;
+
 %%
 
-dt = nanmean(diff(Processed.t*24*60*60)); 
-dt = floor(dt*10)./10; % want accuracy only to 0.1
-if dt == 0 %kluge fix for drone lidar timestep
-    dt = nanmean(diff(Processed.t*24*60*60)); 
-    dt = ceil(dt*10)./10; % want accuracy only to 0.1
-end
+
 
 
 ZZ = inpaint_nans(Zrunup);
