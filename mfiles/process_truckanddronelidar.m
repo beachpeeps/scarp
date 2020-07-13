@@ -9,6 +9,7 @@ function [Processed,xyzti] = process_truckanddronelidar(filedir, filename, vizdi
 % filename: name of the las file in filedir
 % savedir: where to save the output
 % drone: 0 or 1, to say if we're processing drone or truck data
+% dxgrid: specify how fine to grid the data (0.1m is standard)
 % 
 % OUTPUTS:
 % Processed = 
@@ -22,7 +23,7 @@ function [Processed,xyzti] = process_truckanddronelidar(filedir, filename, vizdi
 % xyzti = 
 %       struct with fields x,y,z,t,i, sorted by time.
 %       coordinates are in UTM eastings and northings and z NAVD88
-%       t is UTC, i is amplitude
+%       t is UTC, i is intensity/reflection
 %
 % copyright Julia Fiedler 2020 jfiedler@ucsd.edu
 % a fair bit of this has been gleaned from USACE's lidar processing codes
@@ -70,6 +71,7 @@ ylabel('X (m)')
 title(['x over time: ' filename])
 
 %% Start the gridding
+disp('start griding')
 scangle = get_scan_angle(c);
 scangle = scangle(sortedInd);
 scangle = double(scangle);
@@ -108,7 +110,7 @@ plot(scanN,scangle(scanN),'or')
 plot(indstart,scangle(indstart),'og')
 % amp = get_intensity(c);
 %%
-
+disp('putting stuff into a matrix')
 tot_scans = numel(scanN);
 scanDIFF =scanN-indstart;
 % scanDIFF = diff(scanN);
@@ -141,8 +143,10 @@ for i=1:I
 end
 
 %%
+disp('hard coding into x/t grid')
 [I,J] = size(Rmat);
-xi_interp = [-200:dxgrid:20]; % HARD CODE for region we care about
+xi_interp = [-50:dxgrid:10]; % HARD CODE for region we care about, TODO: make upper/lower bounds function inputs!!
+
 
 Zinterp = nan(I,length(xi_interp));
 for m=3:I
@@ -175,8 +179,8 @@ for a=1:M
     for i=1:length(xi)
         ind=r>=xi(i)-dxi & r<=xi(i)+dxi;
         if ~isempty(z(ind))
-            Zinterp2(a,i)=median(z(ind));
-            Ainterp(a,i)=median(amp(ind));
+            Zinterp2(a,i)=median(z(ind),'omitnan');
+            Ainterp(a,i)=median(amp(ind),'omitnan');
         end
     end
 end
@@ -192,9 +196,9 @@ Processed.Ainterp = Ainterp;
 Processed.t = Tmat(:,1)';
 
 
-save(['../mat/lidar/drone/' filename],'Processed','xyzti');
+save(['../mat/lidar/drone/' filename '_10cm'],'Processed','xyzti');
 % save(['../mat/lidar/truck/' filename(1:end-4)],'Processed','xyzti');
-
+disp(['saved '  filename '_10cm'])
 %% 
 hFig = figure;
 pcolor(xi_interp,Processed.t(1:1:3000),Processed.Zinterp2(1:1:3000,:));
