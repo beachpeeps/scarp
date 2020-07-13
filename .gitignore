@@ -3,4 +3,4 @@ data/las/*
 viz/*
 mfiles/USACE/*
 *.asv
-mat/lidar/*
+mat/*
