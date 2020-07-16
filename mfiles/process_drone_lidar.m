@@ -3,10 +3,10 @@
 % embarassing form.
 % loosely based on ERDC FRF's lidar processing code from 2014
 % April 21,2020 Julia Fiedler jfiedler@ucsd.edu
-filedir = '../data/las/drone/';
-filename = dir([filedir '*.las']);
+filedir = '/Volumes/FiedlerBot8000/scarp/data/las/drone/';
+filename = dir([filedir '20200224*.las']);
 %%
-nfile = 6;
+for nfile = 1:5
 c = lasdata([filedir filename(nfile).name]);
 t = get_gps_time(c);
 
@@ -33,14 +33,14 @@ amp = intensity(I);
 
 % cutoff bad data
 % TO DO: CAN WE find this automatically? This is not good programming.
-newInd = 1.3e6:length(x);
+% newInd = 1.3e6:length(x);
 
-x = x(newInd);
-y= y(newInd);
-z = z(newInd);
-zz = z;
-amp = amp(newInd);
-T = T(newInd);
+% x = x(newInd);
+% y= y(newInd);
+% z = z(newInd);
+% zz = z;
+% amp = amp(newInd);
+% T = T(newInd);
 
 
 
