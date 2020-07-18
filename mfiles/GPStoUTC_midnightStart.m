@@ -11,7 +11,7 @@ if isempty(dstart)
     disp('No time in the filename, please enter what day the data was collected in datetime format')
     prompt = 'Date in string format (datetime(yyyy,mm,dd))?)';
     filedate = input(prompt);
-elseif dstart == 1
+elseif dstart(1) == 1
     filedate = datetime(filename(1:8),'InputFormat','yyyyMMdd');
 elseif dstart ~=1
     dd = [dstart; dstart+7]';
