@@ -12,11 +12,18 @@ clear
 
 %%
 filedir = '~/Documents/Repositories/scarp/data/las/truck/';
-filename = dir([filedir 'WaveScanDrone*.txt']);
+filedir = '/Volumes/FiedlerBot8000/scarp/data/las/truck/';
+filedir = '../data/las/';
 
-nfile = 4;
-A = importdata([filedir filename(nfile).name]);
+filename = dir([filedir '2019*.txt']);
+% filename = dir([filedir 'WaveScan_*.txt']);
+%%
+for nfile = 2:4
+% nfile = 1;
+%%
 header = {'PID','x','y','z','range','amp','time','reflectance','theta','targetIndex','targetCount'};
+A = dlmread([filedir filename(nfile).name],',',1,0);
+%%
 % phi,x,y,z,range,amp,time,reflectance
 tGPS = A(:,7);
 
@@ -41,7 +48,7 @@ targetIndex = A(:,10);
 targetCount = A(:,11);
 
 % quick cleanup for visualization porpoises
-notspray = find(reflectance>-32);
+notspray = find(reflectance>-27);
 
 theta = theta(notspray);
 
@@ -52,7 +59,7 @@ xyzti.x = x(notspray);
 xyzti.y = y(notspray);
 xyzti.z = z(notspray);
 xyzti.t = T(notspray);
-xyzti.i = amp(notspray);
+xyzti.i = reflectance(notspray);
 
 
 %% rotate around P1, and transect angle
@@ -70,7 +77,8 @@ YO = Paros.P.UTMNorthings_Zone11_(1);
 clf
 ind = 1:1000:length(xyzti.z);
 hold on
-scatter(XR(ind),xyzti.z(ind),10,xyzti.t(ind))
+scatter(xyzti.x(ind),xyzti.z(ind),10,xyzti.t(ind))
+axis equal
 %%
 % clf
 % ind = 1:1000:length(z);
@@ -105,6 +113,8 @@ plot(XR,'.')
 % end
 %%
 scanN = find(abs(diff(theta))>5);
+scanN = find(abs(diff(theta))>20); % dec 14 truck is THETA, not PHI (polar vs azimuthal angle)
+
 
 indstart = nan(length(scanN)-1,1);
 %find when to start the scan
@@ -163,7 +173,7 @@ end
 
 %%
 [I,J] = size(Rmat);
-xi_interp = [-200:0.5:20]; % HARD CODE for region we care about
+xi_interp = [-100:0.1:10]; % HARD CODE for region we care about
 
 Zinterp = nan(I,length(xi_interp));
 for m=3:I
@@ -176,7 +186,7 @@ for m=3:I
     Zinterp(m,:) = interp1(X(~isnan(X)),Z(~isnan(X)),xi_interp);
     end
 end
-
+clf
 pcolor(xi_interp,Tmat(:,1),Zinterp); shading flat
 %%
 [M,~]=size(Rmat);
@@ -192,8 +202,8 @@ for a=1:M
     for i=1:length(xi)
         ind=r>=xi(i)-dxi & r<=xi(i)+dxi;
         if ~isempty(z(ind))
-            Zinterp2(a,i)=median(z(ind));
-            Ainterp(a,i)=median(amp(ind));
+            Zinterp2(a,i)=median(z(ind),'omitnan');
+            Ainterp(a,i)=median(amp(ind),'omitnan');
         end
     end
 end
@@ -210,7 +220,11 @@ Processed.t = Tmat(:,1)';
 
 
 savedir = '../mat/lidar/truck/';
-save([savedir filename(nfile).name(1:end-4)],'Processed','xyzti');
+% save([savedir filename(nfile).name(1:end-4)],'Processed','xyzti');
+% save([savedir '20200224_00582_TorreyRunup_H' num2str(nfile+1,'%1.0f') '_10cm'],'Processed','xyzti','-v7.3');
+save([savedir '20191214_00582_TorreyRunup_H' num2str(nfile+1,'%1.0f') '_10cm'],'Processed','xyzti','-v7.3');
+
+
 %% 
 hFig = figure;
 pcolor(xi_interp,Processed.t(1:1:1500),Processed.Zinterp2(1:1:1500,:));
@@ -312,4 +326,4 @@ print(hFig, '-djpeg', ['../viz/' filename(nfile).name(1:end-4) '_timestack.jpg']
 % ztemp = ztemp(xu);
 % 
 % zinterp(i,:) = interp1(xtemp,ztemp,xgrid,'nearest');
-% end
+end
