@@ -81,7 +81,7 @@ flag = zeros(1,nt);
 
 %%
 
-L2 = [-30 0; options.threshold options.threshold];
+L2 = [-30 10; options.threshold options.threshold];
 tol = 1e-6;
 dx = xx(2)-xx(1);
 msize = 0.5/dx; % find a 50cm width for runup search, such that we look at a 1m window
@@ -132,7 +132,7 @@ for ii=1:nt
         
         runupline = InterX(L1,L2);
         if ~isempty(runupline)
-            RunupImage(ii) = runupline(1,end);
+            RunupImage(ii) = runupline(1,1);
         else
             RunupImage(ii) = NaN;
         end
@@ -142,19 +142,20 @@ for ii=1:nt
 %         plot(L1(1,:),L1(2,:))
 %         hold on
 %         plot(L2(1,:),L2(2,:))
+%         plot(RunupImage(ii),0.1,'o')
 % %             plot(L1c(1,:),L1c(2,:),'o')
 %     
 %     % %     pause
-%     % %
-%         xlim([-40 50])
-%         ylim([0 1.5])
-% %     % %         pause
-% % %         plot(xx,Processed.Zinterp(i,:))
-% %         title(ii)
-%         ii=ii+1;
-% %      
-% % %     pause(0.01)%
-% % %     pause
+% %     % %
+%         xlim([-40 10])
+%         ylim([0 1])
+% % %     % %         pause
+% % % %         plot(xx,Processed.Zinterp(i,:))
+% % %         title(ii)
+% %         ii=ii+1;
+% % %      
+% % % %     pause(0.01)%
+%     pause(0.1)
     
     
     
@@ -163,7 +164,31 @@ end
 
 %if things do not pass the eye-test, we will hand draw the line!!!
 %%
+%what to do when wave hits the rip rap?
+%Look for large jumps in runup data - assume a function of large rock/
+% big elevation changes - maybe filter out??
+jump = find(diff(RunupImage)>1); %<--- find the big jumps by 1m in the data
+riprap = find(RunupImage>2.75); %<-- where the riprap starts
 
+riprapjump = intersect(jump+1,riprap); % big horizontal jumps on rip rap
+clf
+plot(RunupImage,'.')
+hold on
+plot(riprapjump,RunupImage(riprapjump),'o')
+
+% there's got to be a cleaner way here
+if ~isempty(riprapjump)
+RunupImage(RunupImage>min(RunupImage(riprapjump))) = NaN;
+end
+% RunupImage(riprapjump) = [];
+% 
+% clf
+% 
+plot(RunupImage)
+
+
+
+%%
 
 nfilt = 1/dt;
 % nfilt = 5;
@@ -229,6 +254,12 @@ foreshorex = xx(nanvar(M)<0.01);
 
 %super kluge rescue
 rmInd = find(foreshorex<-30);
+foreshore(rmInd) = [];
+foreshorex(rmInd) = [];
+
+
+%super kluge rescue for riprap
+rmInd = find(foreshorex>5);
 foreshore(rmInd) = [];
 foreshorex(rmInd) = [];
 
