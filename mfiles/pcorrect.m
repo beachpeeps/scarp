@@ -49,7 +49,7 @@ k = ones(size(fY));
 if H>0 % can only solve for k if water depth is greater than 0   
     ff = cutoffind;
     k(ff) = getk(f(ff),H);
-    fY(ff) = fY(ff).*exp(k(ff).*burial).*cosh(k(ff)*H);  
+    fY(ff) = fY(ff).*exp(abs(k(ff).*burial)).*cosh(k(ff)*H);  
 end
 %******************
 
@@ -64,3 +64,29 @@ P = Psspad(601:end-600);
 % plot(P)
 % hold on
 % plot(pressure)
+
+%% check spectra if needed
+% clf
+% nfft = 800; fs = Hz;
+% [Amp,~] = calculate_fft2(P,nfft,Hz);
+% 
+% df = fs/(nfft-1);   % This is the frequency resolution
+% nnyq = nfft/2 +1;
+% 
+% fm = [0:nnyq-1]*df;
+% Spp = mean( Amp .* conj(Amp) ) / (nnyq * df);  % need to normalize by freq resolution
+% Spp = Spp(1:nnyq);
+% 
+% loglog(fm,Spp)
+% 
+% [Amp,~] = calculate_fft2(pressure,nfft,Hz);
+% 
+% df = fs/(nfft-1);   % This is the frequency resolution
+% nnyq = nfft/2 +1;
+% 
+% fm = [0:nnyq-1]*df;
+% Spp = mean( Amp .* conj(Amp) ) / (nnyq * df);  % need to normalize by freq resolution
+% Spp = Spp(1:nnyq);
+% 
+% hold on
+% loglog(fm,Spp)
