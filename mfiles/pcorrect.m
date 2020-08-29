@@ -1,6 +1,11 @@
 function [P,H] = pcorrect(pressure,Hz,fcutoff,burial)
 % code takes in pressure at depth, measured with pressure sensor, and
 % returns linearly corrected surface pressure time series.
+% INPUT:
+% pressure =  process_paros output pressure (hydrostatic head in meters)
+% Hz = sampling frequency in Hz
+% fcutoff = frequency that defines the noise floor (avoid overcorrection!)
+% burial = in meters below sand, or 0 for bottom mounted non-buried sensor
 
 if nargin<2
     fcutoff = 0.33;
