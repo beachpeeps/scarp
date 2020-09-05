@@ -12,8 +12,8 @@ if nargin<2
 end
 
 % get mean wave height
-H = nanmean(pressure);
-
+H = nanmean(pressure)-burial;
+disp(H)
 % give error for psensors not under water table
 if H<0
     error('Warning: negative H detected - sensor is likely over watertable: skipping hour');
@@ -54,7 +54,7 @@ k = ones(size(fY));
 if H>0 % can only solve for k if water depth is greater than 0   
     ff = cutoffind;
     k(ff) = getk(f(ff),H);
-    fY(ff) = fY(ff).*exp(abs(k(ff).*burial)).*cosh(k(ff)*H);  
+    fY(ff) = fY(ff).*exp(abs(k(ff)).*burial).*cosh(k(ff)*H);  
 end
 %******************
 
