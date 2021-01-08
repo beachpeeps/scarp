@@ -2,15 +2,23 @@
 % script to compare the lidar with the paros
 % will spit out 3 figures: timeseries, spectra, and scatter plots
 clear
+close all
 %choose hover number and paros number and load data
-hovern = 2;
+hovern = 1;
 parosn = 2;
 datadir = '/Volumes/FiedlerBot8000/scarp/';
-drone = load([datadir '/mat/lidar/drone/20200224_00582_TorreyRunup_H' num2str(hovern) '_10cm.mat'],'Processed');
-truck = load([datadir '/mat/lidar/truck/20200224_00582_TorreyRunup_H' num2str(hovern) '_10cm.mat'],'Processed');
+% drone = load([datadir '/mat/lidar/drone/20200224_00582_TorreyRunup_H' num2str(hovern) '_10cm.mat'],'Processed');
+drone = load([datadir '/mat/lidar/drone/20191214_H' num2str(hovern) '_navd88_geoid12b_10cm.mat'],'Processed');
+
+% truck = load([datadir '/mat/lidar/truck/20200224_00582_TorreyRunup_H' num2str(hovern) '_10cm.mat'],'Processed');
+truck = load([datadir '/mat/lidar/truck/20191214_00582_TorreyRunup_H' num2str(hovern) '_10cm.mat'],'Processed');
+
+
 load('../mat/paros.mat');
-load('../mat/20200224/DroneStartStop_20200224.mat');
-load(['../mat/20200224_H' num2str(hovern) '_wiggle.mat'])
+load('../mat/20191214/DroneStartStop_20191214.mat');
+load(['../mat/20191214_H' num2str(hovern) '_wiggle.mat'])
+% load('../mat/20200224/DroneStartStop_20200224.mat');
+% load(['../mat/20200224_H' num2str(hovern) '_wiggle.mat'])
 %%
 % make sure the truck and drone are sampling from the same time
 tchunk = [tstart(hovern) tstop(hovern)];
@@ -28,7 +36,7 @@ tstop = datetime(tstop,'ConvertFrom','datenum');
 
 % find which hour to pull from
 tstarthour = dateshift(tstart,'start','hour');
-tind = find(paros(parosn).t == tstarthour(hovern));
+tind = find(dateshift(paros(parosn).t+minutes(1),'start','hour') == tstarthour(hovern));
 
 % check if hover spans 2 hours
 tstophour = dateshift(tstop,'start','hour');
@@ -42,15 +50,15 @@ tvec(:,i) = paros(parosn).t(tind(i)):seconds(0.5):paros(parosn).t(tind(i))+7166*
 end
 tvec = tvec(:);
 
-%NOTE: THERE IS A 1 SECOND OFFSET in the paros data at P4!!! 
-if parosn == 4
-    tvec = tvec-seconds(1);
-end
-%NOTE: THERE IS A 0.5 SECOND OFFSET in the paros data at P4!!! 
-
-if parosn == 2
-    tvec = tvec-seconds(0.5);
-end
+% %NOTE: THERE IS A 1 SECOND OFFSET in the paros data at P4!!! 
+% if parosn == 4
+%     tvec = tvec-seconds(1);
+% end
+% %NOTE: THERE IS A 0.5 SECOND OFFSET in the paros data at P4!!! 
+% 
+% if parosn == 2
+%     tvec = tvec-seconds(0.5);
+% end
 
 % find location in gridded lidar data that matches paros location
 xind = knnsearch(truck.Processed.x',paros(parosn).crossshore);
@@ -81,11 +89,17 @@ TStruck = inpaint_nans(TStruck);
 % lidar
 tvecHover2Hz = tstart(hovern):seconds(1/Hz_paros):tstop(hovern);
 if ~isempty(paros(parosn).offset)
-pvec = paros(parosn).etaCorrected(:,tind(:))+paros(parosn).z-paros(parosn).offset;
+pvec = paros(parosn).eta(:,tind(:))+paros(parosn).z-paros(parosn).offset;
 else
-    pvec = paros(parosn).etaCorrected(:,tind(:))+paros(parosn).z;
+    pvec = paros(parosn).eta(:,tind(:))+paros(parosn).z;
 end
 TSparos = interp1(tvec,pvec(:),tvecHover2Hz);
+if ~isempty(paros(parosn).offset)
+pvecC = paros(parosn).etaCorrected(:,tind(:))+paros(parosn).z-paros(parosn).offset;
+else
+    pvecC = paros(parosn).etaCorrected(:,tind(:))+paros(parosn).z;
+end
+TSparosC = interp1(tvec,pvecC(:),tvecHover2Hz);
 
 
 nfftL = 5*60*Hz_lidar; % 5 minute windows
@@ -93,8 +107,20 @@ nfftP = 5*60*Hz_paros; % 5 minute windows
 
 % get spectra for each instrument (unfiltered)
 [fmp, SppParos, ~, ~, nens, dof] = get_spectrum(TSparos, nfftP, Hz_paros, 0.05);
+[fmp, SppParosC, ~, ~, nens, dof] = get_spectrum(TSparosC, nfftP, Hz_paros, 0.05);
+
 [fm, SppDrone, ~, ~, nens, dof] = get_spectrum(TSdrone, nfftL, Hz_lidar, 0.05);
 [fm, SppTruck, ~, ~, nens, dof] = get_spectrum(TStruck, nfftL, Hz_lidar, 0.05);
+
+load('../mat/sandThickness.mat', 'sandThickness10cmInterp','dtimeHourly');
+burialTime = find(dtimeHourly==tstarthour(hovern));
+burial = sandThickness10cmInterp(parosn,burialTime);
+%%
+fakeDepth = burial;
+[P,H] = pcorrect(TSparos(:)-paros(parosn).z,Hz_paros,0.25,fakeDepth);
+P = P+paros(parosn).z;
+[fmp, SppParos2, ~, ~, nens, dof] = get_spectrum(detrend(P), nfftP, Hz_paros, 0.05);
+
 
 %% ******prewhiten the timeseries to avoid ringing at beginning/end********
 sizepad = 60*Hz_lidar; %60 second padding - should be enough??
@@ -129,8 +155,12 @@ plot(tvecHover,TStruck,':')
 xlim([tstart(hovern) tstart(hovern)+minutes(8)])
 plot(tvecHover,D,'b')
 plot(tvecHover,T,'r')
+plot(tvecHover2Hz,P,'c')
+
 legend('paros','drone','truck','droneFilt','truckFilt')
 ylabel('z NAVD (m)')
+% print(gcf, '-djpeg', ['../viz/20200224_H' num2str(hovern) '_P' num2str(parosn) '_timeseries.jpg'],'-r300');
+
 
 %% make spectra figure
 figure
@@ -140,18 +170,32 @@ loglog(fm,SppDrone)
 loglog(fm,SppTruck)
 loglog(fm,SppD)
 loglog(fm,SppT)
+loglog(fmp,SppParosC)
+loglog(fmp,SppParos2)
 
-legend('paros','drone','truck','droneFilt','truckFilt')
+
+hl = legend('paros','drone','truck','droneFilt','truckFilt',['paros - pressure corrected at ' num2str(burial) 'm depth'],['paros - pressure corrected at ' num2str(fakeDepth) 'm depth']);
+hl.Location = 'southwest';
 xlabel('Frequency (Hz)')
 ylabel('Energy (m^2/Hz)')
-title(['Lidar data filtered at ' num2str(cutoff) ' Hz'])
-
+title(['Lidar data filtered at ' num2str(cutoff) ' Hz, Hover ' num2str(hovern) ', ' datestr(tvecHover(1),'mmm yyyy') ])
+% print(gcf, '-djpeg', ['../viz/20191214_H' num2str(hovern) '_P' num2str(parosn) '_spectra.jpg'],'-r300');
+%%
+figure
+depth = mean(TSparos)-burial;
+k = get_wavenumber(2*pi*fmp,mean(TSparos)-burial);
+loglog(fm(1:300),SppDrone(1:300)./SppParos(1:300))
+hold on
+plot(fmp,exp(10*fmp).*exp(10*fmp))
 %% make scatter plot
 % linearly interpolate onto same time grid for plotting porpoises
 T_2Hz = interp1(tvecHover,T,tvecHover2Hz);
 D_2Hz = interp1(tvecHover,D,tvecHover2Hz);
 
-lidar_data = [D_2Hz; T_2Hz];
+T_2Hz_dec = decimate(T,Hz_lidar/Hz_paros)';
+D_2Hz_dec = decimate(D,Hz_lidar/Hz_paros)';
+
+lidar_data = [D_2Hz_dec; T_2Hz_dec];
 lidar_label = {'drone (m) @ 2Hz','truck (m) @ 2Hz'};
 
 figure
@@ -183,3 +227,4 @@ for i=1:2
 end
 
 suptitle(['Hover ' num2str(hovern) ' : P' num2str(parosn)])
+% print(gcf, '-djpeg', ['../viz/20191214_H' num2str(hovern) '_P' num2str(parosn) '_scatter.jpg'],'-r300');
