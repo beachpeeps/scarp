@@ -145,7 +145,7 @@ end
 %%
 disp('hard coding into x/t grid')
 [I,J] = size(Rmat);
-xi_interp = [-50:dxgrid:10]; % HARD CODE for region we care about, TODO: make upper/lower bounds function inputs!!
+xi_interp = [-5:dxgrid:100]; % HARD CODE for region we care about, TODO: make upper/lower bounds function inputs!!
 
 
 Zinterp = nan(I,length(xi_interp));
@@ -196,38 +196,38 @@ Processed.Ainterp = Ainterp;
 Processed.t = Tmat(:,1)';
 
 
-save(['../mat/lidar/drone/' filename '_10cm'],'Processed','xyzti');
+save(['../mat/lidar/drone/' filename '_10cm_ParLot'],'Processed','xyzti');
 % save(['../mat/lidar/truck/' filename(1:end-4)],'Processed','xyzti');
-disp(['saved '  filename '_10cm'])
+disp(['saved '  filename '_10cm_ParLot'])
 %% 
-hFig = figure;
-pcolor(xi_interp,Processed.t(1:1:3000),Processed.Zinterp2(1:1:3000,:));
-shading flat
-xlabel('m from lidar')
-datetick('y','MM:SS')
-ylabel('Time (MM:SS)')
-title(filename, 'Interpreter', 'none');
-hc = colorbar;
-caxis([0.5 2])
-hc.Label.String = 'Z ';
-print(hFig, '-djpeg', [vizdir filename '_timestack.jpg'],'-r300');
+% hFig = figure;
+% pcolor(xi_interp,Processed.t(1:1:3000),Processed.Zinterp2(1:1:3000,:));
+% shading flat
+% xlabel('m from lidar')
+% datetick('y','MM:SS')
+% ylabel('Time (MM:SS)')
+% title(filename, 'Interpreter', 'none');
+% hc = colorbar;
+% % caxis([0.5 2])
+% hc.Label.String = 'Z ';
+% print(hFig, '-djpeg', [vizdir filename '_timestack_ParLot.jpg'],'-r300');
 
 
 %%
-hFig = figure;
-plot(Processed.t,Zinterp2(:,6)-nanmean(Zinterp2(:,6)))
-hold on
-plot(Processed.t,Zinterp2(:,11)-nanmean(Zinterp2(:,11)))
-plot(Processed.t,Zinterp2(:,16)-nanmean(Zinterp2(:,16)))
-ylim([-0.6 0.6])
-xi_interp([6 11 16])
-legend('5m','10m','15m')
-ylabel('Drift: Z-mean(Z) (m)')
-datetick('x','MM:SS')
-xlabel('Time (MM:SS')
-title(filename, 'Interpreter', 'none');
-
-print(hFig, '-djpeg', [vizdir filename '_drift.jpg'],'-r300');
+% hFig = figure;
+% plot(Processed.t,Zinterp2(:,6)-nanmean(Zinterp2(:,6)))
+% hold on
+% plot(Processed.t,Zinterp2(:,11)-nanmean(Zinterp2(:,11)))
+% plot(Processed.t,Zinterp2(:,16)-nanmean(Zinterp2(:,16)))
+% ylim([-0.6 0.6])
+% xlocs = xi_interp([6 11 16]);
+% legend('5m','10m','15m')
+% ylabel('Drift: Z-mean(Z) (m)')
+% datetick('x','MM:SS')
+% xlabel('Time (MM:SS')
+% title(filename, 'Interpreter', 'none');
+% 
+% print(hFig, '-djpeg', [vizdir filename '_drift_ParLot.jpg'],'-r300');
 
 
 %%
