@@ -25,14 +25,16 @@ for nfile = 1:length(fileList)
     
     ptemp(nfile) = mean(h);
     Htemp(nfile) = 4*nanstd(h);
-    ttemp(nfile) = dateshift(datetime(pSensorTime(20),'ConvertFrom','datenum'),'start','hour');
+    ttempHR(nfile) = dateshift(datetime(pSensorTime(20),'ConvertFrom','datenum'),'start','hour');
+    ttemp(nfile) = datetime(pSensorTime(1),'ConvertFrom','datenum');
+
     etatemp(:,nfile) = h;
 end
 
-[tsort,indsort] = sort(ttemp);
+[tsort,indsort] = sort(ttempHR);
 
 paros(pnum).h = ptemp(indsort);
-paros(pnum).t = tsort;
+paros(pnum).t = ttemp(indsort);
 paros(pnum).Hs = Htemp(indsort);
 paros(pnum).eta = etatemp(:,indsort);
 
@@ -42,12 +44,12 @@ paros(pnum).z = P.DeploymentNAVD88_m_Geoid12B_(pnum);
 paros(pnum).UTMx = P.UTMEastings_Zone11_(pnum);
 paros(pnum).UTMy = P.UTMNorthings_Zone11_(pnum);
 
-clear hourVec h ptemp ttemp t Htemp etatemp 
+clear hourVec h ptemp ttemp t Htemp etatemp  ttempHR indsort tsort
 end
 %% get tide
-[t_verified,t_predicted,verified,predicted,tideInfo] = getNOAAtide(minTime,maxTime,'9410230');
-% [t,verified,tideInfo] = getNOAAtide_hourly(datestr(minTime,'yyyymmdd'),datestr(maxTime,'yyyymmdd'),'9410230');
-t = datetime(t_verified,'ConvertFrom','datenum');
+% [t_verified,t_predicted,verified,predicted,tideInfo] = getNOAAtide(minTime,maxTime,'9410230');
+% % [t,verified,tideInfo] = getNOAAtide_hourly(datestr(minTime,'yyyymmdd'),datestr(maxTime,'yyyymmdd'),'9410230');
+% t = datetime(t_verified,'ConvertFrom','datenum');
 %% plot timeseries
 % 
 % savedir = '../viz/';
@@ -132,50 +134,50 @@ YO = P.UTMNorthings_Zone11_(1);
 
 %% Make a figure that shows the mean sea surface from the drone lidar (about a 20 min record)
 
-load('/Users/juliafiedler/Documents/Repositories/scarp/mat/lidar/drone/20200224_00582_TorreyRunup_H1.mat')
+% load('/Users/juliafiedler/Documents/Repositories/scarp/mat/lidar/drone/20200224_00582_TorreyRunup_H1.mat')
 
 % pressure sensors and tides are averaged over the same time period
 % need a fix for drone scans that run over 2 hourly records (there will be
 % a data gap in the paros!!)
 
-figure
-plot(-Processed.x,nanmean(Processed.Zinterp2))
-hold on
-
-minTime = datenum(dateshift(datetime(nanmin(Processed.t),'ConvertFrom','datenum'),'start','minute'));
-maxTime = datenum(dateshift(datetime(nanmax(Processed.t),'ConvertFrom','datenum'),'end','minute'));
-
-indTide = find(t_verified>minTime & t_verified<=maxTime);
-
-tideMean = mean(verified(indTide));
-
-for pnum = 2:10
-indHour = find(datenum(paros(pnum).t) == datenum(dateshift(datetime(minTime,'ConvertFrom','datenum'),'start','hour')));
-
-tchunk = round((maxTime-minTime)*60*60*24*2);
-tchunkStart = round((minTime-datenum(paros(pnum).t(indHour)))*60*60*24*2);
-
-fitinHour = tchunkStart+tchunk-length(paros(pnum).eta);
-
-if fitinHour<60 && fitinHour>0
-    pchunk(pnum,:) = paros(pnum).eta(tchunkStart:end,indHour);
-elseif fitinHour<0
-    pchunk(pnum,:) = paros(pnum).eta(tchunkStart:tchunkStart+tchunk,indHour);
-end
-end
-
- for pnum = 2:10
-        scatter(XR(pnum),mean(pchunk(pnum,:))+paros(pnum).z)
-        hold on
-        text(XR(pnum),mean(pchunk(pnum,:))+paros(pnum).z,P.Properties.RowNames(pnum))      
- end
-    
-  plot([-130 20],[1 1]*tideMean,':k')
-    ylim([1.75 3])
-    xlim([-150 25])
-    title(datestr(minTime))
-    xlabel('X-shore location (m)')
-
+% figure
+% plot(-Processed.x,nanmean(Processed.Zinterp2))
+% hold on
+% 
+% minTime = datenum(dateshift(datetime(nanmin(Processed.t),'ConvertFrom','datenum'),'start','minute'));
+% maxTime = datenum(dateshift(datetime(nanmax(Processed.t),'ConvertFrom','datenum'),'end','minute'));
+% 
+% indTide = find(t_verified>minTime & t_verified<=maxTime);
+% 
+% tideMean = mean(verified(indTide));
+% 
+% for pnum = 2:10
+% indHour = find(datenum(paros(pnum).t) == datenum(dateshift(datetime(minTime,'ConvertFrom','datenum'),'start','hour')));
+% 
+% tchunk = round((maxTime-minTime)*60*60*24*2);
+% tchunkStart = round((minTime-datenum(paros(pnum).t(indHour)))*60*60*24*2);
+% 
+% fitinHour = tchunkStart+tchunk-length(paros(pnum).eta);
+% 
+% if fitinHour<60 && fitinHour>0
+%     pchunk(pnum,:) = paros(pnum).eta(tchunkStart:end,indHour);
+% elseif fitinHour<0
+%     pchunk(pnum,:) = paros(pnum).eta(tchunkStart:tchunkStart+tchunk,indHour);
+% end
+% end
+% 
+%  for pnum = 2:10
+%         scatter(XR(pnum),mean(pchunk(pnum,:))+paros(pnum).z)
+%         hold on
+%         text(XR(pnum),mean(pchunk(pnum,:))+paros(pnum).z,P.Properties.RowNames(pnum))      
+%  end
+%     
+%   plot([-130 20],[1 1]*tideMean,':k')
+%     ylim([1.75 3])
+%     xlim([-150 25])
+%     title(datestr(minTime))
+%     xlabel('X-shore location (m)')
+% 
 
 
 
