@@ -11,9 +11,8 @@ elseif str2double(hoverdate) == 20200224
     xlimit = 500;
     hovers = 2:5;
 end
-
-
-for hovern = hovers
+% for hovern = hovers
+for hovern = 3;
     clearvars -except hovern fracNaN hovers hoverdate xlimit
     
     
@@ -174,7 +173,7 @@ for hovern = hovers
             
             % plot a sample timestack of the waves and the roller faces (only use every 1st timestep)
             tstep = 1;
-            if mod(tti,tstep) == 0 && nw == 10 %use the 40th wave (just to show how it works!)
+            if mod(tti,tstep) == 0 && nw == 11 %use the 40th wave (just to show how it works!)
                 h1 = plot(x(1:xlimit),eta(1:xlimit,ti)+tti/tstep,'b'); % wave
                 hold on
                 h3(1) = plot(x(xi),hpeak(tti)+tti/tstep,'ok'); %roller face
@@ -240,22 +239,40 @@ for hovern = hovers
     %% get moving slope
     Cp = nan(nwave,xlimit);
     Cp_H = nan(nwave,xlimit);
+    window_length = 100;
+    window_length_adapt = -x*1.5;
+% figure
+% ax1 = subplot(2,1,1);
+% ax2 = subplot(2,1,2);
     
     for i =1:nwave
         
         wavex = wave_x(i,~isnan(wave_x(i,:)));
         waveh = wave_h(i,~isnan(wave_x(i,:)));
-        %
+
         wavet = 1:length(wavex);
         [a,b] = unique(wavex);
         %
-        wt = interp1(a,wavet(b),x);
-        wh = interp1(a,waveh(b),x);
+        wt = dt.*interp1(a,wavet(b),x(1:xlimit));
+        wh = interp1(a,waveh(b),x(1:xlimit));
         
+%         p = polyfit(wavet(b)*dt,a,3);
+%         polyFit = polyval(p,wt);
+%         dp = p.*[ 3 2 1 0];
+% %         Cp(i,:) = dp(1)*wt+dp(2);
+%         Cp(i,:) = dp(1)*wt.^2+dp(2)*wt+dp(3);
+
+        Cp_H(i,:) = wh;
+        %
+
+%         
         nwaveplot = 20; % pick which wave to make a plot of
-        n = 1;
-        while n < find(x == max(wavex))
-            nn = n:n+window_length-1; %<-- this is a 5m window, and doesn't change. Issue?
+        n = round(window_length_adapt(1)/2)+1;
+        while n < min(find(x == max(wavex)),xlimit-window_length_adapt(1)/2-1)
+            
+            nn = n-window_length/2:n+window_length/2; %<-- this is a XXm window, and doesn't change. Issue?
+            nn = round(n-round(window_length_adapt(n)/2):n+round(window_length_adapt(n)/2)); %<--changing XXm window with x locaiton
+
             
             % get subset of x,t points in moving window
             xloc = x(nn);
@@ -271,22 +288,37 @@ for hovern = hovers
             end
             
             % simple linear regression to get slope
-            E = [ones(size(tloc)) tloc];
-            c = E\xloc;
+%             E = [ones(size(tloc)) tloc];
+%             c = E\xloc;
+
+%                     p = polyfit(tloc,xloc,1);
+                    b = robustfit(tloc,xloc);
+                    warning('off','stats:statrobustfit:IterationLimit');
+% [p2,stats] = polyfit(tloc,xloc,2);
+% dp2 = p2.*[2 1 0];
+% cpFit = dp(1)*tloc+dp(2);
+%         polyFit = polyval(p,wt);
+%         dp = p.*[ 1 0];
+%         Cp(i,n) = dp(1);
+        Cp(i,n) = b(2);
+%         Cp(i,n) = dp(1)*nanmean(wt(nn))+dp(2);
             
-            Cp(i,n) = tstack.Hz_lidar*c(2); % wave speed is the slope
+            
+%             Cp(i,n) = tstack.Hz_lidar*c(2); % wave speed is the slope
             Cp_H(i,n) = nanmedian(wh(nn)); % get median wave height of subwindow
             
             %mid loop diagnostic plot for troubleshooting porpoises
-            %         if i==nwaveplot
-            %
-            % %             pause(0.01)
-            %             delete(h1)
-            %             h1 = plot(xloc,tloc,'.r','parent',ax1);
-            %             plot(x(n),Cp(i,n),'.r','parent',ax2)
-            %
-            %         end
-            n = n+1;
+%                     if i==nwaveplot
+%             
+%             %             pause(0.01)
+%                         delete(h1)
+%                         h1 = plot(xloc,tloc,'.r','parent',ax1);
+%                         plot(x(n),Cp(i,n),'.r','parent',ax2)
+%                         hold(ax2,'on')
+%                         plot(x(n),Cp2(i,n),'.k','parent',ax2);
+%                 pause
+%                     end
+            n = n+1; 
             
         end
     end
