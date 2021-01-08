@@ -18,7 +18,7 @@ function [wiggle, Processed] = remove_wiggles(Processed,stable_xshore)
 xlocs = knnsearch(Processed.x',stable_xshore); %find indices of stable_xshore
 xlocs = xlocs(1):xlocs(end); % just in case stable_xshore>2 pts
 
-Zneat_movingmean = movmedian(Processed.Zinterp(:,xlocs),50,'omitnan'); % 5 second moving mean, TODO: change for non 10Hz collection
+Zneat_movingmean = movmedian(Processed.Zinterp(:,xlocs),35,'omitnan'); % 3.5 second moving mean, TODO: change for non 10Hz collection
 
 Zneat = Zneat_movingmean-nanmean(Zneat_movingmean);
 
