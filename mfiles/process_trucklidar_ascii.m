@@ -18,7 +18,7 @@ filedir = '../data/las/';
 filename = dir([filedir '2019*.txt']);
 % filename = dir([filedir 'WaveScan_*.txt']);
 %%
-for nfile = 2:4
+for nfile = 1
 % nfile = 1;
 %%
 header = {'PID','x','y','z','range','amp','time','reflectance','theta','targetIndex','targetCount'};
@@ -222,7 +222,7 @@ Processed.t = Tmat(:,1)';
 savedir = '../mat/lidar/truck/';
 % save([savedir filename(nfile).name(1:end-4)],'Processed','xyzti');
 % save([savedir '20200224_00582_TorreyRunup_H' num2str(nfile+1,'%1.0f') '_10cm'],'Processed','xyzti','-v7.3');
-save([savedir '20191214_00582_TorreyRunup_H' num2str(nfile+1,'%1.0f') '_10cm'],'Processed','xyzti','-v7.3');
+save([savedir '20191214_00582_TorreyRunup_H' num2str(nfile,'%1.0f') '_10cm'],'Processed','xyzti','-v7.3');
 
 
 %% 
