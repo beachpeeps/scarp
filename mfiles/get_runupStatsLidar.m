@@ -1,4 +1,4 @@
-function [Spec,Info,Bulk,Tseries] = get_runupStatsLidar(modDir,varargin)
+function [Spec,Info,Bulk,Tseries] = get_runupStatsLidar_L1(modDir,varargin)
 % [Spec,Info,Bulk,Tseries,Sur] = get_runupStats(modDir,inputDate,varargin)
 % This function processes the gridded Lidar data from Torrey Pines to get
 % the runup line, as defined by Stockdon et al, 2006.
@@ -39,40 +39,24 @@ options = parseOptions( options , varargin );
 
 
 % load(modDir,'filename','Processed','filedir');
-load(modDir,'Processed');
+% load(modDir,'Processed');
+load(modDir)
 
 
 %%
+TXdrone = tstack.TXdrone';
+TXdrone2 = tstack.TXdrone2';
+t = tstack.tvecHover;
+nt = length(t);
+dt = 1/tstack.Hz_lidar;
 
-if ~isempty(options.tchunk)
-    tind = knnsearch(Processed.t',options.tchunk');
-    Processed.t = Processed.t(tind(1):tind(2));
-    Processed.Zinterp = Processed.Zinterp(tind(1):tind(2),:);
-    Processed.Zinterp2 = Processed.Zinterp2(tind(1):tind(2),:);
-    Processed.Ainterp = Processed.Ainterp(tind(1):tind(2),:);
-end
+IGlength = 100; %seconds
+IGfilt = IGlength/dt;
 
-nt = length(Processed.t);
+xx = tstack.Xgrid(:,1)';
 
-dt = nanmean(diff(Processed.t*24*60*60)); 
-dt = floor(dt*10)./10; % want accuracy only to 0.1
-if dt == 0 %kluge fix for drone lidar timestep
-    dt = nanmean(diff(Processed.t*24*60*60)); 
-    dt = ceil(dt*10)./10; % want accuracy only to 0.1
-end
-
-IGlength = 25; %seconds
-IGfilt = 25/dt;
-
-xx = Processed.x;
-% xinterp = [-30:options.dx:10];
-
-% for i=1:nt
-%     Zinterp2(i,:) = interp1(xx,Processed.Zinterp2(i,:),xinterp);
-%     Zinterp(i,:) = interp1(xx,Processed.Zinterp(i,:),xinterp);
-% end
-
-M = movmin(Processed.Zinterp2,IGfilt,1,'omitnan'); % get moving minimum for foreshore on IG freq
+M = movmin(TXdrone,IGfilt,1,'omitnan'); % get moving minimum for foreshore on IG freq
+M = movmean(M,50/dt,1);
 %%
 RunupImage = nan(1,nt);
 idxrunup = ones(1,nt);
@@ -81,7 +65,7 @@ flag = zeros(1,nt);
 
 %%
 
-L2 = [-30 10; options.threshold options.threshold];
+L2 = [-30 0; options.threshold options.threshold];
 tol = 1e-6;
 dx = xx(2)-xx(1);
 msize = 0.5/dx; % find a 50cm width for runup search, such that we look at a 1m window
@@ -89,17 +73,17 @@ msize = 0.5/dx; % find a 50cm width for runup search, such that we look at a 1m 
 for ii=1:nt 
 
     %
-    indM = ii-500:ii+500; % take minumum over a window of 1000 pts in time
-    indM = indM(indM>1 & indM<nt ); % cut off window length at ends of tseries
+%     indM = ii-500:ii+500; % take minumum over a window of 1000 pts in time
+%     indM = indM(indM>1 & indM<nt ); % cut off window length at ends of tseries
     %     wlevtemp =Processed.Zinterp(i,:)-medfilt1(min(M(indM,:)),3);
     %     wlevtemp = medfilt1(wlevtemp,3);
     
-    sand = medfilt1(min(M(indM,:)),3);
+    sand = medfilt1(M(ii,:),5);
     if ii>2 && ii<nt
-        watline = median(Processed.Zinterp(ii-1:ii+1,:),'omitnan');
+        watline = median(TXdrone2(ii-1:ii+1,:),'omitnan');
         wlevtemp2 = watline-sand;
     else
-            wlevtemp2 = Processed.Zinterp(ii,:)-sand;
+            wlevtemp2 = TXdrone(ii,:)-sand;
     end
 %     wlevtemp2(isnan(wlevtemp2)) = sand(isnan(wlevtemp2));
 
@@ -151,11 +135,11 @@ for ii=1:nt
 %         ylim([0 1])
 % % %     % %         pause
 % % % %         plot(xx,Processed.Zinterp(i,:))
-% % %         title(ii)
+% %         title(ii)
 % %         ii=ii+1;
 % % %      
 % % % %     pause(0.01)%
-%     pause(0.1)
+%     pause
     
     
     
@@ -212,7 +196,7 @@ Xrunup = RunupImage;
 % filtZ = medfilt1(filtZ,nfilt,[],2,'omitnan');
 
 for i=1:nt
-    Zrunup(i) = Processed.Zinterp2(i,idxR(i));
+    Zrunup(i) = TXdrone2(i,idxR(i));
 %         Zrunup(i) = filtZ(i,idxR(i));
 
 end
@@ -249,7 +233,10 @@ stdEta = nanstd(Zrunup);
 maxEta = eta+2*stdEta;
 minEta = eta-2*stdEta;
 
-foreshore = nanmin(Processed.Zinterp2(:,nanvar(M)<0.01));
+
+Md = mean(M); % get moving minimum for foreshore on IG freq
+
+foreshore = nanmin(TXdrone(:,nanvar(M)<0.01));
 foreshorex = xx(nanvar(M)<0.01);
 
 %super kluge rescue
@@ -266,8 +253,10 @@ foreshorex(rmInd) = [];
 % all x should be connected:
 rmInd = find(diff(foreshorex)>1);
 
+if ~isempty(rmInd)
 foreshore(rmInd) = [];
 foreshorex(rmInd) = [];
+end
 
 % all x should be connected:
 % rmInd = find(diff(foreshorex)>1);
@@ -277,8 +266,25 @@ foreshorex(rmInd) = [];
 
 botRange = find(foreshore>=minEta & foreshore<=maxEta);
 
+
+% kluge to remove accidental water points:
+rmInd = find(diff(foreshorex(botRange))>1);
+if ~isempty(rmInd)
+
+botRange = botRange(rmInd(end)+1:end);
+end
+% foreshore(1:rmInd(end)) = [];
+% foreshorex(1:rmInd(end)) = [];
+
 fitvars = polyfit(foreshorex(botRange), foreshore(botRange), 1);
+
 beta = fitvars(1);
+%%
+figure
+plot(foreshorex,foreshore)
+hold on
+plot(foreshorex(botRange), foreshore(botRange),'.','linewidth',2)
+plot(xx,Md)
 
 
 %%
@@ -302,8 +308,8 @@ Spec.dof = dof;
 
 Info.Hz = 1/dt;
 Info.threshold = options.threshold;
-Info.datahour = datetime(Processed.t(3),'ConvertFrom','datenum');
-Info.duration = seconds((Processed.t(end)-Processed.t(3))*24*60*60);
+Info.datahour = t(1);
+Info.duration = minutes((t(end)-t(1)));
 % Info.rawFilename = filename;
 % Info.rawFiledir = filedir;
 Info.processedFilename = modDir;
@@ -316,7 +322,7 @@ Bulk.beta = beta;
 Bulk.foreshore = foreshore;
 Bulk.foreshoreX = foreshorex;
 
-Tseries.T = Processed.t; % in seconds
+Tseries.T = tstack.tvecHover; % in seconds
 Tseries.Zrunup = Zrunup;
 Tseries.Xrunup = Xrunup;
 Tseries.idxrunup = idxR;
