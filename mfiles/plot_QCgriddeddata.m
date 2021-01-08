@@ -1,10 +1,13 @@
 %plot_QCgriddeddata
-hovern = 5;
+%not gonna do a loop because whatever
+hovern = 2;
 vizdir = '../viz/';
+%because everything has a different name
 filename = ['20200224_00582_TorreyRunup_H' num2str(hovern) '_10cm_ParLot.mat'];
+% filename = ['20191214_H' num2str(hovern) '_navd88_geoid12b_10cm_ParLot.mat'];
 load(['../mat/lidar/drone/' filename]);
 
-%% 
+%% timestack figure
 hFig = figure;
 pcolor(Processed.x,Processed.t(1:1:3000),Processed.Zinterp2(1:1:3000,:));
 shading flat
@@ -18,14 +21,14 @@ hc.Label.String = 'Z ';
 print(hFig, '-djpeg', [vizdir filename '_timestack_ParLot.jpg'],'-r300');
 
 
-%%
+%% wiggle figure
 hFig = figure;
 
 stable_xshore = [45;50]; %m
 [wiggle, ~] = remove_wiggles(Processed,stable_xshore);
 
 
-xind = [50 60 270];
+xind = [10 30 40];
 
 for i=1:length(xind)
     plot(Processed.t,Processed.Zinterp2(:,xind(i))-nanmean(Processed.Zinterp2(:,xind(i))))
@@ -41,7 +44,9 @@ ylabel('Drift: Z-mean(Z) (m)')
 datetick('x','MM:SS')
 xlabel('Time (MM:SS')
 title(filename, 'Interpreter', 'none');
-print(hFig, '-djpeg', [vizdir filename '_wiggle_ParLot.jpg'],'-r300');
+% print(hFig, '-djpeg', [vizdir filename '_wiggle_ParLot.jpg'],'-r300');
 
 t = Processed.t;
-save(['../mat/20200224_H' num2str(hovern) '_wiggle.mat'],'wiggle','stable_xshore','t')
+
+%% save the wiggles save the world
+save(['../mat/20200224_H' num2str(hovern) '_wiggle_35.mat'],'wiggle','stable_xshore','t')
