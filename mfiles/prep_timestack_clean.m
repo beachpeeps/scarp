@@ -6,7 +6,7 @@ savedir = [datadir '/mat/timestacks/'];
 %% choose hover number and hover date and load data
 hoverdate = '20191214';
 % hoverdate = '20200224';
-for hovern = 1
+for hovern = 2:5
 
 
 
@@ -76,16 +76,25 @@ end
 
 
 TXdrone2 = inpaint_nans(TXdrone,2); %inpaint nans applies del^2 over whole matrix
-
-ttruck = datetime(truck.Processed.t,'ConvertFrom','datenum');
+%%
+ttruck = truck.Processed.t;
+ttruck = fillmissing(ttruck,'linear'); %there are weird missing times in the time vector??
 
 TStruck = truck.Processed.Zinterp2;
 TStruck(TStruck>nanmean(TStruck)+3*nanstd(TStruck))=NaN;
+TStruck = TStruck';
 
-TStruck(isnan(datenum(ttruck)),:) = [];
-ttruck(isnan(datenum(ttruck))) = [];
+%fixing errors in the time grid in Feb hovers - misinterpretation of
+%"linescan" starts and stops due to noise leads to extra time grid spacing.
+%Removing these blips makes the interpolation to the 10Hz time vector
+%smoother.
+if str2double(hoverdate) == 20200224
+invalid = find(sum(isnan(TStruck))>=525);
+TStruck(:,invalid) = [];
+ttruck(invalid) = [];
+end
 
-TXtruck = interp2(datenum(ttruck),truck.Processed.x,TStruck',datenum(Tgrid),Xgrid);
+TXtruck = interp2(ttruck,truck.Processed.x,TStruck,datenum(Tgrid),Xgrid,'nearest');
 TXtruck2 = inpaint_nans(TXtruck,2);
 
 %%
