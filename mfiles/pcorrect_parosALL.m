@@ -6,7 +6,7 @@ load('../mat/sandThickness.mat')
 paros(10).etaCorrected = [];
 
 Hz = 2;
-fcutoff = 0.25;
+fcutoff = 0.33;
 
 for pnum = 1:10
     %preallocate
@@ -16,7 +16,7 @@ for pnum = 1:10
         
         pRaw = paros(pnum).eta(:,tnum);
         
-        burialInd = find(dtimeHourly == paros(pnum).t(tnum));
+        burialInd = find(dtimeHourly == dateshift(paros(pnum).t(tnum)+minutes(1),'start','hour'));
         
         burial = sandThickness10cmInterp(pnum,burialInd);
         if isempty(burial)
@@ -26,7 +26,12 @@ for pnum = 1:10
         try
             [P,H] = pcorrect(pRaw,Hz,fcutoff,burial);
             etaCorrected(:,tnum) = P;
-        catch
+        catch err
+            if ~contains(err.message,'negative H detected')
+                disp(err.message)
+                break
+            end
+                
         end
         
     end
@@ -35,10 +40,10 @@ for pnum = 1:10
 end
 %%
 clf
-pnum = 8;
-plot(paros(pnum).etaCorrected(100000:250000))
+pnum = 2;
+plot(paros(pnum).etaCorrected(1e6:5e6))
 hold on
-plot(paros(pnum).eta(100000:250000))
+plot(paros(pnum).eta(1e6:5e6))
 
 %%
 save('../mat/paros.mat','paros','-v7.3')
