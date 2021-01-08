@@ -8,10 +8,11 @@ clear
 % filename = dir([folderDir '20200224*_10cm.mat']);
 
 hoverdate = '20200224';
+% hoverdate = '20191214';
 
 
 datadir = '/Volumes/FiedlerBot8000/scarp/';
-options.drone = 0;
+options.drone = 1;
 
 
 % filename = dir([folderDir 'Wave*.mat']);
@@ -19,7 +20,7 @@ options.drone = 0;
 % load('../mat/20191214/DroneStartStop_20191214.mat','tstart','tstop')
 
 
-for i=4
+for i=[2:5]
 % for i=[2 4]
 
 
