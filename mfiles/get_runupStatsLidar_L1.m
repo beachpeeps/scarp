@@ -182,7 +182,7 @@ plot(RunupImage)
 
 %%
 
-nfilt = 1/dt;
+nfilt = 1/dt; %nfilt = 10, if dt = 1/10. 
 % nfilt = 5;
 
 R = medfilt1(RunupImage,nfilt,'omitnan');
