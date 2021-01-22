@@ -4,3 +4,6 @@ viz/*
 mfiles/USACE/*
 *.asv
 mat/*
+forChris/*
+mfiles/*.png
+data/*
