@@ -16,7 +16,7 @@ elseif str2double(hoverdate) == 20200224
 end
 
    
-tstack  = load([datadir '/mat/timestacks/' hoverdate '_' num2str(hovern) '.mat']);
+tstack  = load([datadir '/mat/timestacks_LARGE/' hoverdate '_' num2str(hovern) '.mat']);
 droneR = load(['../mat/' hoverdate '/Drone_Hover_' num2str(hovern,'%02.0f') '_L1_runupstats_10cm.mat']);
 truckR = load(['../mat/' hoverdate '/Truck_Hover_' num2str(hovern,'%02.0f') '_L1_runupstats_10cm.mat']);
 load('../mat/paros.mat')    
@@ -106,4 +106,4 @@ hc.Position(4) = 0.03;
 hc.Position(2) = 0.1;
 ax(2).Position(3) = ax(1).Position(3);
 
-print(hFig, '-djpeg', '../viz/paperFigures/timestackCompare.jpeg','-r300');
+print(hFig, '-djpeg', '../viz/paperFigures/timestackCompare_LARGE.jpeg','-r300');
