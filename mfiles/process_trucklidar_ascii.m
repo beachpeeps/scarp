@@ -11,17 +11,18 @@ clear
 % P.Properties.VariableNames = VarNames.Properties.VariableNames;
 
 %%
-filedir = '~/Documents/Repositories/scarp/data/las/truck/';
+% filedir = '~/Documents/Repositories/scarp/data/las/truck/';
 filedir = '/Volumes/FiedlerBot8000/scarp/data/las/truck/';
-filedir = '../data/las/';
+% filedir = '../data/las/';
 
-filename = dir([filedir '2019*.txt']);
+filename = dir([filedir '20191214*.txt']);
 % filename = dir([filedir 'WaveScan_*.txt']);
 %%
-for nfile = 1
+for nfile = 3:4
 % nfile = 1;
 %%
 header = {'PID','x','y','z','range','amp','time','reflectance','theta','targetIndex','targetCount'};
+disp('reading txt file')
 A = dlmread([filedir filename(nfile).name],',',1,0);
 %%
 % phi,x,y,z,range,amp,time,reflectance
@@ -36,16 +37,16 @@ tGPS = A(:,7);
 [T, sortedInd] = sort(tUTC);
 A = A(sortedInd,:);
 
-PID = A(:,1);
+% PID = A(:,1);
 x = A(:,2);
 y = A(:,3);
 z = A(:,4);
-range =A(:,5);
-amp = A(:,6);
+% range =A(:,5);
+% amp = A(:,6);
 reflectance =A(:,8);
 theta = A(:,9);
-targetIndex = A(:,10);
-targetCount = A(:,11);
+% targetIndex = A(:,10);
+% targetCount = A(:,11);
 
 % quick cleanup for visualization porpoises
 notspray = find(reflectance>-27);
@@ -61,11 +62,11 @@ xyzti.z = z(notspray);
 xyzti.t = T(notspray);
 xyzti.i = reflectance(notspray);
 
-
+clear x y z T reflectance A
 %% rotate around P1, and transect angle
 
 %% put into local coordinate system, rotate around P1
-
+disp('rotating stuff')
 Paros = load('../mat/sensors.mat','P','theta');
 
 THETA = deg2rad(Paros.theta);
@@ -74,6 +75,7 @@ YO = Paros.P.UTMNorthings_Zone11_(1);
 
 [XR YR] = xyRotate(xyzti.x,xyzti.y,THETA,XO,YO);
 %%
+disp('plotting stuff')
 clf
 ind = 1:1000:length(xyzti.z);
 hold on
@@ -112,7 +114,8 @@ plot(XR,'.')
 % tt(i) = T(scanN(i));
 % end
 %%
-scanN = find(abs(diff(theta))>5);
+disp('getting each linescan')
+% scanN = find(abs(diff(theta))>5);
 scanN = find(abs(diff(theta))>20); % dec 14 truck is THETA, not PHI (polar vs azimuthal angle)
 
 
@@ -120,7 +123,7 @@ indstart = nan(length(scanN)-1,1);
 %find when to start the scan
 for i=1:length(scanN)-1
     sctemp = theta(scanN(i)+1:scanN(i+1));
-%     ltemp = min(sctemp);
+    %     ltemp = min(sctemp);
     minloc = find(sctemp == min(sctemp),1);
     indstart(i) = scanN(i)+minloc;
 end
@@ -130,6 +133,28 @@ sctemp = theta(1:scanN(1));
 minloc = find(sctemp == min(sctemp),1);
 indstart = [minloc; indstart];
 
+scanDIFF =scanN-indstart;
+
+if max(scanDIFF)>1500
+    scanN = find(abs(diff(theta))>17); % dec 14 truck is THETA, not PHI (polar vs azimuthal angle)
+    
+    
+    indstart = nan(length(scanN)-1,1);
+    %find when to start the scan
+    for i=1:length(scanN)-1
+        sctemp = theta(scanN(i)+1:scanN(i+1));
+        %     ltemp = min(sctemp);
+        minloc = find(sctemp == min(sctemp),1);
+        indstart(i) = scanN(i)+minloc;
+    end
+    
+    % add first scan
+    sctemp = theta(1:scanN(1));
+    minloc = find(sctemp == min(sctemp),1);
+    indstart = [minloc; indstart];
+    
+    scanDIFF =scanN-indstart;
+end
 
 %%
 clf
@@ -139,7 +164,7 @@ plot(scanN,theta(scanN),'or')
 plot(indstart,theta(indstart),'og')
 % amp = get_intensity(c);
 %%
-
+disp('gridding stuff')
 tot_scans = numel(scanN);
 scanDIFF =scanN-indstart;
 % scanDIFF = diff(scanN);
@@ -172,8 +197,9 @@ for i=1:I
 end
 
 %%
+disp('gridding stuff nicely')
 [I,J] = size(Rmat);
-xi_interp = [-100:0.1:10]; % HARD CODE for region we care about
+xi_interp = [-200:0.1:100]; % HARD CODE for region we care about
 
 Zinterp = nan(I,length(xi_interp));
 for m=3:I
@@ -187,8 +213,10 @@ for m=3:I
     end
 end
 clf
+disp('making a plot')
 pcolor(xi_interp,Tmat(:,1),Zinterp); shading flat
 %%
+disp('getting the median grid')
 [M,~]=size(Rmat);
 xi = xi_interp;
 dxi=mean(diff(xi))/2;
@@ -212,6 +240,7 @@ end
 
 %denoise
 %% save data
+disp('saving data')
 Processed.x = xi_interp;
 Processed.Zinterp = Zinterp;
 Processed.Zinterp2 = Zinterp2;
@@ -219,13 +248,15 @@ Processed.Ainterp = Ainterp;
 Processed.t = Tmat(:,1)';
 
 
-savedir = '../mat/lidar/truck/';
+savedir = '/Volumes/FiedlerBot8000/scarp/mat/lidar/truck/';
 % save([savedir filename(nfile).name(1:end-4)],'Processed','xyzti');
 % save([savedir '20200224_00582_TorreyRunup_H' num2str(nfile+1,'%1.0f') '_10cm'],'Processed','xyzti','-v7.3');
-save([savedir '20191214_00582_TorreyRunup_H' num2str(nfile,'%1.0f') '_10cm'],'Processed','xyzti','-v7.3');
+% save([savedir '20191214_00582_TorreyRunup_H' num2str(nfile,'%1.0f') '_10cm_AllPoints'],'Processed','xyzti','-v7.3');
+save([savedir '20191214_00582_TorreyRunup_H' num2str(nfile,'%1.0f') '_10cm_AllPoints'],'Processed','xyzti','-v7.3');
 
 
 %% 
+disp('plotting data')
 hFig = figure;
 pcolor(xi_interp,Processed.t(1:1:1500),Processed.Zinterp2(1:1:1500,:));
 shading flat
@@ -236,7 +267,7 @@ title(filename(nfile).name, 'Interpreter', 'none');
 hc = colorbar;
 caxis([0.25 2.5])
 hc.Label.String = 'Z navd88 (m) ';
-print(hFig, '-djpeg', ['../viz/' filename(nfile).name(1:end-4) '_timestack.jpg'],'-r300');
+print(hFig, '-djpeg', ['../viz/' filename(nfile).name(1:end-4) '_timestack_AllPoints.jpg'],'-r300');
 
 
 % %%
