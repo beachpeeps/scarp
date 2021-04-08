@@ -3,26 +3,28 @@
 clear all
 datadir = '/Volumes/FiedlerBot8000/scarp/';
 savedir = [datadir '/mat/timestacks/'];
+addpath /Users/juliafiedler/Documents/MATLAB/Inpaint_nans/Inpaint_nans/
+
 %% choose hover number and hover date and load data
-hoverdate = '20191214';
-% hoverdate = '20200224';
-for hovern = 2:5
+% hoverdate = '20191214';
+hoverdate = '20200224';
+for hovern = 2
 
 
 
 
 if str2double(hoverdate) == 20191214
     
-    drone = load([datadir '/mat/lidar/drone/20191214_H' num2str(hovern) '_navd88_geoid12b_10cm.mat'],'Processed');
-    truck = load([datadir '/mat/lidar/truck/20191214_00582_TorreyRunup_H' num2str(hovern) '_10cm.mat'],'Processed');
+    drone = load([datadir '/mat/lidar/drone/20191214_H' num2str(hovern) '_navd88_geoid12b_10cm_AllPoints.mat'],'Processed');
+    truck = load([datadir '/mat/lidar/truck/20191214_00582_TorreyRunup_H' num2str(hovern) '_10cm_AllPoints.mat'],'Processed');
     load('../mat/20191214/DroneStartStop_20191214.mat');
     load(['../mat/20191214_H' num2str(hovern) '_wiggle.mat']);
     xlimit = 1000;
     
 elseif str2double(hoverdate) == 20200224
     
-    drone = load([datadir '/mat/lidar/drone/20200224_00582_TorreyRunup_H' num2str(hovern) '_10cm.mat'],'Processed');
-    truck = load([datadir '/mat/lidar/truck/20200224_00582_TorreyRunup_H' num2str(hovern) '_10cm.mat'],'Processed');
+    drone = load([datadir '/mat/lidar/drone/20200224_00582_TorreyRunup_H' num2str(hovern) '_10cm_AllPoints.mat'],'Processed');
+    truck = load([datadir '/mat/lidar/truck/20200224_00582_TorreyRunup_H' num2str(hovern) '_10cm_AllPoints.mat'],'Processed');
     load('../mat/20200224/DroneStartStop_20200224.mat');
     load(['../mat/20200224_H' num2str(hovern) '_wiggle.mat']);
     xlimit = 500;
@@ -81,15 +83,17 @@ ttruck = truck.Processed.t;
 ttruck = fillmissing(ttruck,'linear'); %there are weird missing times in the time vector??
 
 TStruck = truck.Processed.Zinterp2;
-TStruck(TStruck>nanmean(TStruck)+3*nanstd(TStruck))=NaN;
+TStruck(TStruck>nanmean(TStruck)+4*nanstd(TStruck))=NaN;
 TStruck = TStruck';
 
-%fixing errors in the time grid in Feb hovers - misinterpretation of
-%"linescan" starts and stops due to noise leads to extra time grid spacing.
-%Removing these blips makes the interpolation to the 10Hz time vector
-%smoother.
+% fixing errors in the time grid in Feb hovers - misinterpretation of
+% "linescan" starts and stops due to noise leads to extra time grid spacing.
+% Removing these blips makes the interpolation to the 10Hz time vector
+% smoother.
 if str2double(hoverdate) == 20200224
+% invalid = find(sum(isnan(TStruck))>=525);
 invalid = find(sum(isnan(TStruck))>=525);
+
 TStruck(:,invalid) = [];
 ttruck(invalid) = [];
 end
