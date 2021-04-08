@@ -1,4 +1,4 @@
-function [Processed,xyzti] = process_truckanddronelidar(filedir, filename, vizdir, drone, dxgrid)
+function [Processed,xyzti] = process_truckanddronelidar(filedir, filename, vizdir, drone, dxgrid,xOFF,xON, savename, datadir)
 % PROCESS_TRUCKANDDRONELIDAR 
 % This function does the initial gridding of the lidar data, puts things
 % into the local coordinate system, and saves to a mat file for future QC
@@ -53,7 +53,7 @@ THETA = deg2rad(theta);
 XO = P.UTMEastings_Zone11_(1);
 YO = P.UTMNorthings_Zone11_(1);
 
-[XR YR] = xyRotate(x,y,THETA,XO,YO);
+[XR ~] = xyRotate(x,y,THETA,XO,YO);
 %% initial look at cross-shore transect
 % take subset of points for easy plotting
 ind = 1:1000:length(z);
@@ -145,7 +145,7 @@ end
 %%
 disp('hard coding into x/t grid')
 [I,J] = size(Rmat);
-xi_interp = [-5:dxgrid:100]; % HARD CODE for region we care about, TODO: make upper/lower bounds function inputs!!
+xi_interp = [xOFF:dxgrid:xON]; % HARD CODE for region we care about, TODO: make upper/lower bounds function inputs!!
 
 
 Zinterp = nan(I,length(xi_interp));
@@ -196,21 +196,21 @@ Processed.Ainterp = Ainterp;
 Processed.t = Tmat(:,1)';
 
 
-save(['../mat/lidar/drone/' filename '_10cm_ParLot'],'Processed','xyzti');
+save([ datadir '/mat/lidar/drone/' filename '_10cm_' savename '.mat'],'Processed','xyzti');
 % save(['../mat/lidar/truck/' filename(1:end-4)],'Processed','xyzti');
-disp(['saved '  filename '_10cm_ParLot'])
-%% 
-% hFig = figure;
-% pcolor(xi_interp,Processed.t(1:1:3000),Processed.Zinterp2(1:1:3000,:));
-% shading flat
-% xlabel('m from lidar')
-% datetick('y','MM:SS')
-% ylabel('Time (MM:SS)')
-% title(filename, 'Interpreter', 'none');
-% hc = colorbar;
-% % caxis([0.5 2])
-% hc.Label.String = 'Z ';
-% print(hFig, '-djpeg', [vizdir filename '_timestack_ParLot.jpg'],'-r300');
+disp(['saved '  filename '_10cm_' savename 'to ' datadir '/mat/lidar/drone/'])
+% 
+hFig = figure;
+pcolor(xi_interp,Processed.t(1:1:3000),Processed.Zinterp2(1:1:3000,:));
+shading flat
+xlabel('m from lidar')
+datetick('y','MM:SS')
+ylabel('Time (MM:SS)')
+title(filename, 'Interpreter', 'none');
+hc = colorbar;
+% caxis([0.5 2])
+hc.Label.String = 'Z ';
+print(hFig, '-djpeg', [vizdir filename '_timestack_' savename '.jpg'],'-r300');
 
 
 %%
