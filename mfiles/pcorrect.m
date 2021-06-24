@@ -47,14 +47,19 @@ fY = fftshift(fY);
 %********************************
 
 % locate frequencies subject to correction
-cutoffind = find(abs(f) <= fcutoff  & abs(f)>0);
+cutoffind_water = find(abs(f) <= fcutoff  & abs(f)>0);
+cutoffind_burial = find(abs(f) <= 0.5  & abs(f)>0);
 
 % do correction in frequency/wavenumber space
 k = ones(size(fY));
 if H>0 % can only solve for k if water depth is greater than 0   
-    ff = cutoffind;
+    ff = cutoffind_burial;
     k(ff) = getk(f(ff),H);
-    fY(ff) = fY(ff).*exp(abs(k(ff)).*burial).*cosh(k(ff)*H);  
+    fY(ff) = fY(ff).*exp(k(ff).*burial);  
+    ff = cutoffind_water;
+    k(ff) = getk(f(ff),H);
+    fY(ff) = fY(ff).*cosh(k(ff)*H); 
+
 end
 %******************
 
