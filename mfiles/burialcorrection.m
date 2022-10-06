@@ -1,22 +1,22 @@
-function ratio = burialcorrection(G,v,gamma,n,kc,S,beta,TSparos,burial,f,k)
+function [ratio,phaseLag] = burialcorrection(G,v,gamma,n,kc,S,beta,TSparos,burial,f,k)
 % load ../mat/Dec_H2_P2_check.mat
-
 % function to make burial correction from original Yamamoto equation
 %Constants
 rho = 1028; %density kg m-2
 g = 9.81; %gravity m s-2
 % P = (TSparos+burial).*g.*rho;
-P = (TSparos+burial).*g.*rho+101600;
-disp(mean(P))
+P = (TSparos+burial).*g.*rho+101600; %<==why did I add this 101600 term? What is it?? is it patm? (dumbly?)
+% disp(mean(P))
 
-% h = (P(tind)-patm(tind))./rho/g - burial;
+%  h = (P(tind)-patm(tind))./rho/g - burial;
 
 % 
+% tind = 1:length(P);
 % Hz_paros = 2; %2 Hz
 % nfftP = 5*60*Hz_paros; % 5 minute windows
 % [f, SppPP, ~, ~, nens, dof] = get_spectrum(P(tind), nfftP, Hz_paros, 0.05);
 % f=f(2:end);
-% h = (P(tind)-patm(tind))./rho/g - burial;
+% h = (P-patm)./rho/g - burial;
 % k = getk(f,mean(h));
 
 % SOURCES:
@@ -61,7 +61,7 @@ disp(mean(P))
 % S = 0.985; % degree of saturation, Raubenheimer assumes full saturation
 % beta = 2.34e-9; %Pa-1, or m2 N-1, from Michallet et al 2019, Table 2
 % % beta = 1e-7; %Pa-1, or m2 N-1, from Michallet et al 2019, Table 2
-% 
+
 
 % Ratio of pressure at depth vs bed surface, Eq. 1 Guest and Hay (Yamamoto
 % formula)
@@ -97,8 +97,9 @@ kprime = k .* (1+(1i*gamma*omega) .* B ./ (kc*k.^2)).^0.5;
 % P(z)/P_0 ratio, where P(z) is pressure at sediment depth, and P_0 is the
 % bed surface pressure
 ratio = (1-A).*exp(-k.*burial)+A .*exp(-kprime.*burial);
-ratio = ratio.*conj(ratio);
-ratio = real(ratio)';
+
+ratio = abs(ratio);
+phaseLag = angle(ratio);
 
 % 
 % clf
